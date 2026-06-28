@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>App de Planificación Horizontal</title>
+    <title>Planning Horizontal Sincronizado</title>
     <style>
         /* --- CONFIGURACIÓN DE PANTALLA Y BLOQUEO HORIZONTAL --- */
         * {
@@ -20,7 +20,6 @@
             background-color: #f0f2f5;
         }
 
-        /* Aviso para forzar el modo horizontal */
         #bloqueo-vertical {
             position: fixed;
             top: 0;
@@ -38,11 +37,8 @@
             padding: 20px;
         }
 
-        /* Ocultar el aviso solo si está en horizontal */
         @media screen and (orientation: landscape) {
-            #bloqueo-vertical {
-                display: none;
-            }
+            #bloqueo-vertical { display: none; }
         }
 
         /* --- ESTRUCTURA PRINCIPAL --- */
@@ -53,9 +49,8 @@
             overflow: hidden;
         }
 
-        /* Zona 1: Lateral de Nombres */
         .lateral-nombres {
-            width: 250px;
+            width: 230px;
             height: 100%;
             background: #fff;
             border-right: 2px solid #ccc;
@@ -63,13 +58,10 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            z-index: 20;
         }
-        .lateral-nombres.oculto {
-            width: 0;
-            border-right: none;
-        }
+        .lateral-nombres.oculto { width: 0; border-right: none; }
 
-        /* Zona 2 y 3: Contenedor Central y de Plano */
         .area-principal {
             flex: 1;
             display: flex;
@@ -79,64 +71,71 @@
             position: relative;
         }
 
-        /* Botón flotante para ocultar/mostrar panel izquierdo */
         .btn-toggle-lateral {
             position: absolute;
             left: 10px;
             top: 10px;
-            z-index: 10;
-            padding: 8px 12px;
+            z-index: 30;
+            padding: 6px 10px;
             background: #007bff;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 12px;
         }
 
-        /* Zona 2: Calendario y Líneas de Tiempo */
+        /* Zona 2: Calendario y Líneas */
         .seccion-calendario {
             flex: 1;
             display: flex;
             flex-direction: column;
-            overflow: auto;
+            overflow-x: auto;
+            overflow-y: auto;
             background: #fafafa;
-            padding: 50px 10px 10px 10px; /* Espacio para el botón flotante */
+            padding: 50px 10px 10px 10px;
             position: relative;
         }
 
-        /* El Timeline Slider Azul */
+        /* Contenedor relativo para que la línea azul se mueva bajo el mismo sistema de coordenadas que los días */
+        .wrapper-timeline {
+            position: relative;
+            width: max-content;
+            min-width: 100%;
+        }
+
         .linea-temporal-azul {
             position: absolute;
             top: 0;
             bottom: 0;
-            left: 50%; /* Dinámico con JS */
-            width: 4px;
+            left: 0px; /* JS controlará esto de 0 al ancho del calendario */
+            width: 3px;
             background: #0056b3;
-            z-index: 5;
+            z-index: 15;
             pointer-events: none;
         }
         .control-linea-azul {
             position: absolute;
-            top: 45px;
+            top: 42px;
             transform: translateX(-50%);
             background: #0056b3;
             color: white;
-            padding: 2px 8px;
+            padding: 2px 6px;
             border-radius: 10px;
-            font-size: 12px;
+            font-size: 11px;
             cursor: ew-resize;
             pointer-events: auto;
+            white-space: nowrap;
         }
 
-        /* Rango de Días (Soporta zoom escalando este contenedor con JS) */
         .contenedor-dias {
             display: flex;
             border-bottom: 2px solid #ddd;
             margin-bottom: 10px;
-            transform-origin: left top;
         }
         .dia-celda {
             min-width: 60px;
+            width: 60px;
             text-align: center;
             background: #eee;
             border-right: 1px solid #ccc;
@@ -144,7 +143,6 @@
             font-size: 11px;
         }
 
-        /* Líneas de Reserva */
         .linea-reserva {
             display: flex;
             align-items: center;
@@ -152,78 +150,140 @@
             margin-bottom: 5px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            padding: 5px;
+            padding: 4px;
+            width: 100%;
         }
-        .controles-linea {
+        .controles-linea { display: flex; gap: 2px; margin-right: 5px; }
+        .controles-linea button { padding: 2px 4px; font-size: 9px; }
+
+        .contenedor-nombres-rango {
             display: flex;
+            flex-wrap: wrap;
             gap: 2px;
-            margin-right: 10px;
+            padding: 0 12px;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+            align-items: center;
         }
-        .controles-linea button {
-            padding: 2px 5px;
+        .tag-nombre-rango {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            padding: 1px 4px;
+            border-radius: 3px;
             font-size: 10px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            border: 1px solid #aaa;
+            cursor: pointer;
         }
 
-        /* Zona 3: El Plano (Inferior) */
+        /* Zona 3: El Plano */
         .seccion-plano {
-            height: 40%;
+            height: 45%;
             background: #e9ecef;
             border-top: 3px solid #bbb;
             position: relative;
             transition: height 0.3s ease;
             display: flex;
             flex-direction: column;
+            z-index: 10;
         }
-        .seccion-plano.oculto {
-            height: 0;
-            border-top: none;
-            overflow: hidden;
-        }
+        .seccion-plano.oculto { height: 0; border-top: none; overflow: hidden; }
+        
         .cabecera-plano {
             background: #ddd;
             padding: 5px 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 13px;
         }
+        .cabecera-plano button {
+            padding: 3px 7px;
+            font-size: 11px;
+            margin-left: 4px;
+            cursor: pointer;
+        }
+        .cabecera-plano button.activo {
+            background: #28a745;
+            color: white;
+            border: 1px solid #1e7e34;
+        }
+
         .canvas-plano {
             flex: 1;
             background: #fff;
             margin: 5px;
             border: 1px dashed #aaa;
             position: relative;
+            overflow: hidden;
         }
 
-        /* Utilidades sencillas */
-        .header-seccion {
-            padding: 10px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #ddd;
-            font-weight: bold;
+        .objeto-plano {
+            position: absolute;
+            border: 2px solid;
+            display: flex;
+            flex-direction: column;
+            padding: 5px;
+            box-sizing: border-box;
+        }
+        .objeto-plano.tipo-piso {
+            background: rgba(0, 123, 255, 0.15);
+            border-color: #007bff;
+            z-index: 1;
+        }
+        .objeto-plano.tipo-habitacion {
+            background: rgba(23, 162, 184, 0.25);
+            border-color: #17a2b8;
+            z-index: 2;
+        }
+        .header-objeto {
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-        .lista-items {
-            list-style: none;
-            overflow-y: auto;
-            flex: 1;
-            padding: 10px;
-        }
-        .item-nombre {
-            display: flex;
-            justify-content: space-between;
-            background: #e2e8f0;
-            padding: 8px;
-            margin-bottom: 5px;
-            border-radius: 4px;
-            cursor: grab;
-        }
-        .item-nombre input {
-            border: none;
-            background: transparent;
+            font-size: 11px;
             font-weight: bold;
         }
+        .header-objeto input {
+            background: transparent;
+            border: none;
+            font-weight: bold;
+            width: 70%;
+            font-size: 11px;
+        }
+        .lista-nombres-en-plano {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            margin-top: 4px;
+        }
+        .tag-plano-dinamico {
+            background: #ffc107;
+            color: #000;
+            padding: 1px 3px;
+            border-radius: 2px;
+            font-size: 9px;
+            font-weight: bold;
+        }
+
+        .vertice-resize {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #333;
+            right: -5px;
+            bottom: -5px;
+            cursor: se-resize;
+            z-index: 10;
+        }
+
+        .header-seccion { padding: 10px; background: #f8f9fa; border-bottom: 1px solid #ddd; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .lista-items { list-style: none; overflow-y: auto; flex: 1; padding: 10px; }
+        .item-nombre { display: flex; justify-content: space-between; background: #e2e8f0; padding: 6px; margin-bottom: 5px; border-radius: 4px; cursor: grab; font-size: 13px; }
+        .item-nombre input { border: none; background: transparent; font-weight: bold; width: 75%; }
     </style>
 </head>
 <body>
@@ -234,110 +294,90 @@
     </div>
 
     <div class="contenedor-app">
-        
         <div class="lateral-nombres" id="panel-izquierdo">
             <div class="header-seccion">
                 <span>Nombres</span>
                 <button onclick="agregarNombre()">+</button>
             </div>
-            <ul class="lista-items" id="lista-nombres">
-                </ul>
+            <ul class="lista-items" id="lista-nombres"></ul>
         </div>
 
         <div class="area-principal">
-            
             <button class="btn-toggle-lateral" onclick="toggleLateral()">☰ Nombres</button>
 
-            <div class="seccion-calendario">
-                
+            <div class="seccion-calendario" id="seccion-calendario">
                 <div style="margin-bottom: 10px; display: flex; gap: 10px; align-items: center;">
-                    <span style="font-size: 12px; font-weight: bold; margin-left: 90px;">Zoom:</span>
-                    <button onclick="cambiarZoom(0.1)">+</button>
-                    <button onclick="cambiarZoom(-0.1)">-</button>
+                    <span style="font-size: 11px; font-weight: bold; margin-left: 90px;">Zoom / Ancho Celdas:</span>
+                    <button onclick="cambiarZoom(10)">+</button>
+                    <button onclick="cambiarZoom(-10)">-</button>
                     <button onclick="agregarLinea()">+ Añadir Línea</button>
                 </div>
 
-                <div class="linea-temporal-azul" id="linea-azul">
-                    <div class="control-linea-azul" id="control-linea">◀ 23 Jul ▶</div>
+                <div class="wrapper-timeline" id="wrapper-timeline">
+                    <div class="linea-temporal-azul" id="linea-azul">
+                        <div class="control-linea-azul" id="control-linea">◀ 23 Jul ▶</div>
+                    </div>
+                    <div class="contenedor-dias" id="calendario-cabecera"></div>
+                    <div id="contenedor-lineas"></div>
                 </div>
-
-                <div class="contenedor-dias" id="calendario-cabecera">
-                    </div>
-
-                <div id="contenedor-lineas">
-                    </div>
             </div>
 
             <div class="seccion-plano" id="panel-plano">
                 <div class="cabecera-plano">
-                    <strong>Plano / Habitaciones</strong>
+                    <strong>Plano de Asignación Espacial</strong>
                     <div>
-                        <button onclick="cambiarHerramienta('piso')">+ Dibujar Piso</button>
-                        <button onclick="cambiarHerramienta('habitacion')">+ Dibujar Habitación</button>
-                        <button onclick="togglePlano()" style="background: #dc3545; color: white; border: none; padding: 2px 6px;">Ocultar Plano</button>
+                        <button id="btn-herramienta-piso" onclick="setHerramienta('piso')">+ Modo Piso</button>
+                        <button id="btn-herramienta-hab" onclick="setHerramienta('habitacion')">+ Modo Habitación</button>
+                        <button onclick="togglePlano()" style="background: #dc3545; color: white; border: none;">Ocultar</button>
                     </div>
                 </div>
-                <div class="canvas-plano" id="lienzo-plano">
-                    <span style="color: #aaa; position: absolute; top:40%; left:40%; pointer-events: none;">[Área de Dibujo Interactiva]</span>
+                <div class="canvas-plano" id="lienzo-plano" onmousedown="iniciarDibujo(event)" ontouchstart="iniciarDibujo(event)">
+                    <span id="ayuda-plano" style="color:#aaa; position:absolute; top:40%; left:35%; pointer-events:none;">[Usa los botones para trazar Pisos o Habitaciones]</span>
                 </div>
             </div>
 
-            <button id="btn-mostrar-plano" onclick="togglePlano()" style="display:none; position: absolute; bottom: 10px; right: 10px; z-index: 10; padding: 5px 10px;">Mostrar Plano</button>
+            <button id="btn-mostrar-plano" onclick="togglePlano()" style="display:none; position: absolute; bottom: 10px; right: 10px; z-index: 30; padding: 5px 10px;">Mostrar Plano</button>
         </div>
     </div>
 
     <script>
-        // --- 1. GESTIÓN DE VISTAS (OCULTAR/MOSTRAR ZONAS) ---
-        function toggleLateral() {
-            document.getElementById('panel-izquierdo').classList.toggle('oculto');
-        }
-
+        // --- 1. CONFIGURACIÓN E INTERFAZ GENERAL ---
+        function toggleLateral() { document.getElementById('panel-izquierdo').classList.toggle('oculto'); }
         function togglePlano() {
             const plano = document.getElementById('panel-plano');
-            const btnMostrar = document.getElementById('btn-mostrar-plano');
-            if(plano.classList.contains('oculto')) {
-                plano.classList.remove('oculto');
-                btnMostrar.style.display = 'none';
-            } else {
-                plano.classList.add('oculto');
-                btnMostrar.style.display = 'block';
-            }
+            const btn = document.getElementById('btn-mostrar-plano');
+            const esOculto = plano.classList.toggle('oculto');
+            btn.style.display = esOculto ? 'block' : 'none';
         }
 
-        // --- 2. GENERACIÓN DEL CALENDARIO (23 JULIO A 31 AGOSTO) ---
+        // --- 2. GENERACIÓN DE CALENDARIO DEL 23 JULIO AL 31 AGOSTO ---
         const cabecera = document.getElementById('calendario-cabecera');
-        // El rango abarca Julio (del 23 al 31) y todo Agosto (1 al 31). Total: 40 días.
         const diasDelRango = [];
-        
-        // Generar array de fechas
-        let fechaInicio = new Date(2026, 6, 23); // Mes 6 es Julio en JS
-        const fechaFin = new Date(2026, 7, 31);   // Mes 7 es Agosto en JS
+        let fInicio = new Date(2026, 6, 23);
+        let fFin = new Date(2026, 7, 31);
 
-        while(fechaInicio <= fechaFin) {
-            diasDelRango.push(new Date(fechaInicio));
-            fechaInicio.setDate(fechaInicio.getDate() + 1);
+        while(fInicio <= fFin) {
+            diasDelRango.push(new Date(fInicio));
+            fInicio.setDate(fInicio.getDate() + 1);
         }
-
-        // Renderizar cabecera de días
-        diasDelRango.forEach(fecha => {
-            const celda = document.createElement('div');
-            celda.className = 'dia-celda';
-            celda.innerHTML = `<strong>${fecha.getDate()}</strong><br>${fecha.toLocaleString('es-ES', {month: 'short'})}`;
-            cabecera.appendChild(celda);
+        diasDelRango.forEach(f => {
+            const c = document.createElement('div');
+            c.className = 'dia-celda';
+            c.innerHTML = `<strong>${f.getDate()}</strong><br>${f.toLocaleString('es-ES', {month: 'short'})}`;
+            cabecera.appendChild(c);
         });
 
-        // --- 3. ZOOM DEL CALENDARIO ---
-        let nivelZoom = 1.0;
-        function cambiarZoom(valor) {
-            nivelZoom += valor;
-            if(nivelZoom < 0.6) nivelZoom = 0.6;
-            if(nivelZoom > 2.0) nivelZoom = 2.0;
-            cabecera.style.transform = `scaleX(${nivelZoom})`;
-            // Nota: En una implementación de producción avanzada, escalarías el ancho de las celdas en px 
-            // para evitar desalineaciones con las líneas de abajo.
+        let anchoCeldaActual = 60;
+        function cambiarZoom(v) {
+            anchoCeldaActual = Math.max(40, Math.min(150, anchoCeldaActual + v));
+            document.querySelectorAll('.dia-celda').forEach(c => {
+                c.style.minWidth = `${anchoCeldaActual}px`;
+                c.style.width = `${anchoCeldaActual}px`;
+            });
+            actualizarPosicionLineaAzul(porcentajeActualLineaAzul);
         }
 
-        // --- 4. GESTIÓN DE LA COLUMNA DE NOMBRES (ZONA 1) ---
+        // --- 3. COLUMNA DE NOMBRES ---
         function agregarNombre() {
             const lista = document.getElementById('lista-nombres');
             const id = Date.now();
@@ -346,260 +386,413 @@
             li.draggable = true;
             li.id = `nombre-${id}`;
             li.innerHTML = `
-                <input type="text" value="Persona" id="input-${id}">
-                <button onclick="this.parentElement.remove()" style="background:none; border:none; color:red; cursor:pointer;">X</button>
+                <input type="text" value="Persona ${lista.children.length + 1}" id="input-${id}">
+                <button onclick="this.parentElement.remove()" style="background:none; border:none; color:red; font-weight:bold;">X</button>
             `;
-            
-            // Eventos para Drag & Drop nativo en móviles/escritorio
-            li.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', li.id);
-            });
-            
+            li.addEventListener('dragstart', (e) => e.dataTransfer.setData('text/plain', li.id));
             lista.appendChild(li);
         }
 
-        // --- 5. GESTIÓN DE LAS LÍNEAS DE TIEMPO (ZONA 2) ---
+        // --- 4. INTERACCIONES DEL TIMELINE / RANGOS ---
+        let primerClick = null, rangoEditando = null, bordeEditando = null;
+        let xInicial = 0, anchoInicial = 0, izquierdaInicial = 0;
         const contenedorLineas = document.getElementById('contenedor-lineas');
+        
+        let baseDatosRangos = {}; 
 
         function agregarLinea() {
-    const id = Date.now();
-    const div = document.createElement('div');
-    div.className = 'linea-reserva';
-    div.id = `linea-${id}`;
-    
-    // Estructura de la línea con su zona de tracks para rangos
-    div.innerHTML = `
-        <div class="controles-linea">
-            <button onclick="moverLinea('${id}', 'subir')">▲</button>
-            <button onclick="moverLinea('${id}', 'bajar')">▼</button>
-            <button onclick="document.getElementById('linea-${id}').remove()" style="color:red; font-weight:bold;">X</button>
-        </div>
-        <input type="text" value="Línea ${contenedorLineas.children.length + 1}" style="width:90px; margin-right:10px; border:1px solid #ccc; padding:2px;">
-        <div class="zona-rangos" id="zona-rangos-${id}" onclick="crearRango(event, '${id}')" 
-             style="flex:1; background:#e2e8f0; height:35px; position:relative; border-radius:4px; overflow:hidden;">
-        </div>
-    `;
-    contenedorLineas.appendChild(div);
-}
-
-// Función para crear un rango al hacer clic
-function crearRango(event, lineaId) {
-    // Si hacemos clic en un rango ya creado o en un nombre, no creamos otro encima
-    if (event.target.className === 'rango-creado' || event.target.tagName === 'INPUT') return;
-
-    const zona = document.getElementById(`zona-rangos-${lineaId}`);
-    const rect = zona.getBoundingClientRect();
-    
-    // Calcular el porcentaje de clic respecto al ancho total de la línea de tiempo
-    const clickX = event.clientX - rect.left;
-    const porcentajeClick = (clickX / rect.width) * 100;
-
-    // Definimos un ancho estándar inicial para el rango (ej. 15% del total, aprox. 6 días)
-    let anchoRango = 15;
-    let posicionIzquierda = porcentajeClick - (anchoRango / 2);
-    
-    // Forzar límites para que no se salga de los bordes (0% a 100%)
-    if (posicionIzquierda < 0) posicionIzquierda = 0;
-    if (posicionIzquierda + anchoRango > 100) posicionIzquierda = 100 - anchoRango;
-
-    // --- CONTROL DE SUPERPOSICIÓN ---
-    const rangosExistentes = zona.querySelectorAll('.rango-creado');
-    let seSuperpone = false;
-
-    rangosExistentes.forEach(rango => {
-        const rIzquierda = parseFloat(rango.style.left);
-        const rDerecha = rIzquierda + parseFloat(rango.style.width);
-        const nuevoDerecha = posicionIzquierda + anchoRango;
-
-        // Fórmula matemática de colisión/solapamiento de rangos
-        if (posicionIzquierda < rDerecha && nuevoDerecha > rIzquierda) {
-            seSuperpone = true;
+            const id = Date.now();
+            const div = document.createElement('div');
+            div.className = 'linea-reserva';
+            div.id = `linea-${id}`;
+            div.innerHTML = `
+                <div class="controles-linea">
+                    <button onclick="moverLinea('${id}', 'subir')">▲</button>
+                    <button onclick="moverLinea('${id}', 'bajar')">▼</button>
+                    <button onclick="document.getElementById('linea-${id}').remove()" style="color:red; font-weight:bold;">X</button>
+                </div>
+                <input type="text" value="Línea ${contenedorLineas.children.length + 1}" style="width:80px; margin-right:5px; font-size:11px;">
+                <div class="zona-rangos" id="zona-rangos-${id}" onclick="gestionarClicksRango(event, '${id}')" 
+                     style="flex:1; background:#e2e8f0; height:38px; position:relative; border-radius:4px;"></div>
+            `;
+            contenedorLineas.appendChild(div);
         }
-    });
 
-    if (seSuperpone) {
-        alert("¡Error! No puedes superponer rangos en la misma línea.");
-        return;
-    }
-
-    // --- CREACIÓN VISUAL DEL RANGO ---
-    const rangoId = Date.now();
-    const rangoEl = document.createElement('div');
-    rangoEl.className = 'rango-creado';
-    rangoEl.id = `rango-${rangoId}`;
-    
-    // Estilos CSS dinámicos para posicionarlo
-    rangoEl.style.position = 'absolute';
-    rangoEl.style.left = `${posicionIzquierda}%`;
-    rangoEl.style.width = `${anchoRango}%`;
-    rangoEl.style.height = '100%';
-    rangoEl.style.background = '#28a745';
-    rangoEl.style.color = 'white';
-    rangoEl.style.display = 'flex';
-    rangoEl.style.alignItems = 'center';
-    rangoEl.style.justifyContent = 'space-between';
-    rangoEl.style.padding = '0 5px';
-    rangoEl.style.fontSize = '11px';
-    rangoEl.style.borderRadius = '4px';
-
-    rangoEl.innerHTML = `
-        <span class="nombre-asignado" style="pointer-events:none; font-weight:bold;">Vacío</span>
-        <button onclick="event.stopPropagation(); this.parentElement.remove();" style="background:none; border:none; color:white; font-weight:bold; cursor:pointer;">×</button>
-    `;
-
-    // --- SOPORTE DRAG & DROP PARA SOLTAR NOMBRES AQUÍ ---
-    rangoEl.addEventListener('dragover', (e) => {
-        e.preventDefault(); // Permitir soltar
-        rangoEl.style.background = '#218838'; // Feedback visual al pasar por encima
-    });
-
-    rangoEl.addEventListener('dragleave', () => {
-        rangoEl.style.background = '#28a745';
-    });
-
-    rangoEl.addEventListener('drop', (e) => {
-        e.preventDefault();
-        rangoEl.style.background = '#28a745';
-        
-        const idNombreElemento = e.dataTransfer.getData('text/plain');
-        const inputNombre = document.getElementById(idNombreElemento).querySelector('input');
-        
-        // Cambiamos el texto del rango por el nombre de la persona arrastrada
-        rangoEl.querySelector('.nombre-asignado').innerText = inputNombre.value;
-    });
-
-    zona.appendChild(rangoEl);
-}
-
-// Función para crear un rango al hacer clic
-function crearRango(event, lineaId) {
-    // Si hacemos clic en un rango ya creado o en un nombre, no creamos otro encima
-    if (event.target.className === 'rango-creado' || event.target.tagName === 'INPUT') return;
-
-    const zona = document.getElementById(`zona-rangos-${lineaId}`);
-    const rect = zona.getBoundingClientRect();
-    
-    // Calcular el porcentaje de clic respecto al ancho total de la línea de tiempo
-    const clickX = event.clientX - rect.left;
-    const porcentajeClick = (clickX / rect.width) * 100;
-
-    // Definimos un ancho estándar inicial para el rango (ej. 15% del total, aprox. 6 días)
-    let anchoRango = 15;
-    let posicionIzquierda = porcentajeClick - (anchoRango / 2);
-    
-    // Forzar límites para que no se salga de los bordes (0% a 100%)
-    if (posicionIzquierda < 0) posicionIzquierda = 0;
-    if (posicionIzquierda + anchoRango > 100) posicionIzquierda = 100 - anchoRango;
-
-    // --- CONTROL DE SUPERPOSICIÓN ---
-    const rangosExistentes = zona.querySelectorAll('.rango-creado');
-    let seSuperpone = false;
-
-    rangosExistentes.forEach(rango => {
-        const rIzquierda = parseFloat(rango.style.left);
-        const rDerecha = rIzquierda + parseFloat(rango.style.width);
-        const nuevoDerecha = posicionIzquierda + anchoRango;
-
-        // Fórmula matemática de colisión/solapamiento de rangos
-        if (posicionIzquierda < rDerecha && nuevoDerecha > rIzquierda) {
-            seSuperpone = true;
+        function moverLinea(id, dir) {
+            const el = document.getElementById(`linea-${id}`);
+            if (dir === 'subir' && el.previousElementSibling) contenedorLineas.insertBefore(el, el.previousElementSibling);
+            else if (dir === 'bajar' && el.nextElementSibling) contenedorLineas.insertBefore(el.nextElementSibling, el);
         }
-    });
 
-    if (seSuperpone) {
-        alert("¡Error! No puedes superponer rangos en la misma línea.");
-        return;
-    }
+        function gestionarClicksRango(event, lineaId) {
+            if (event.target.classList.contains('rango-creado') || event.target.classList.contains('control-borde') || event.target.closest('.tag-nombre-rango') || event.target.tagName === 'BUTTON') return;
+            const zona = document.getElementById(`zona-rangos-${lineaId}`);
+            const rect = zona.getBoundingClientRect();
+            const pctClick = ((event.clientX - rect.left) / rect.width) * 100;
 
-    // --- CREACIÓN VISUAL DEL RANGO ---
-    const rangoId = Date.now();
-    const rangoEl = document.createElement('div');
-    rangoEl.className = 'rango-creado';
-    rangoEl.id = `rango-${rangoId}`;
-    
-    // Estilos CSS dinámicos para posicionarlo
-    rangoEl.style.position = 'absolute';
-    rangoEl.style.left = `${posicionIzquierda}%`;
-    rangoEl.style.width = `${anchoRango}%`;
-    rangoEl.style.height = '100%';
-    rangoEl.style.background = '#28a745';
-    rangoEl.style.color = 'white';
-    rangoEl.style.display = 'flex';
-    rangoEl.style.alignItems = 'center';
-    rangoEl.style.justifyContent = 'space-between';
-    rangoEl.style.padding = '0 5px';
-    rangoEl.style.fontSize = '11px';
-    rangoEl.style.borderRadius = '4px';
+            if (primerClick === null || primerClick.lineaId !== lineaId) {
+                primerClick = { lineaId: lineaId, porcentaje: pctClick };
+                zona.style.background = "#d1e7dd"; 
+            } else {
+                let inicio = Math.min(primerClick.porcentaje, pctClick);
+                let fin = Math.max(primerClick.porcentaje, pctClick);
+                let ancho = Math.max(3, fin - inicio);
 
-    rangoEl.innerHTML = `
-        <span class="nombre-asignado" style="pointer-events:none; font-weight:bold;">Vacío</span>
-        <button onclick="event.stopPropagation(); this.parentElement.remove();" style="background:none; border:none; color:white; font-weight:bold; cursor:pointer;">×</button>
-    `;
+                if (!comprobarSuperposicion(zona, inicio, ancho)) {
+                    dibujarRango(zona, inicio, ancho);
+                } else {
+                    alert("¡Error! Los rangos no se pueden superponer.");
+                }
+                zona.style.background = "#e2e8f0";
+                primerClick = null;
+            }
+        }
 
-    // --- SOPORTE DRAG & DROP PARA SOLTAR NOMBRES AQUÍ ---
-    rangoEl.addEventListener('dragover', (e) => {
-        e.preventDefault(); // Permitir soltar
-        rangoEl.style.background = '#218838'; // Feedback visual al pasar por encima
-    });
+        function comprobarSuperposicion(zona, nuevoInicio, nuevoAncho, idIgnorar = null) {
+            const rangos = zona.querySelectorAll('.rango-creado');
+            let solapa = false;
+            rangos.forEach(r => {
+                if (idIgnorar && r.id === idIgnorar) return;
+                let rI = parseFloat(r.style.left), rF = rI + parseFloat(r.style.width);
+                if (nuevoInicio < rF && (nuevoInicio + nuevoAncho) > rI) solapa = true;
+            });
+            return solapa;
+        }
 
-    rangoEl.addEventListener('dragleave', () => {
-        rangoEl.style.background = '#28a745';
-    });
+        function dibujarRango(zona, inicio, ancho) {
+            const rangoId = `rango-${Date.now()}`;
+            const rangoEl = document.createElement('div');
+            rangoEl.className = 'rango-creado';
+            rangoEl.id = rangoId;
+            
+            baseDatosRangos[rangoId] = { inicio: inicio, fin: inicio + ancho, nombres: [], destinoPlano: null };
 
-    rangoEl.addEventListener('drop', (e) => {
-        e.preventDefault();
-        rangoEl.style.background = '#28a745';
-        
-        const idNombreElemento = e.dataTransfer.getData('text/plain');
-        const inputNombre = document.getElementById(idNombreElemento).querySelector('input');
-        
-        // Cambiamos el texto del rango por el nombre de la persona arrastrada
-        rangoEl.querySelector('.nombre-asignado').innerText = inputNombre.value;
-    });
+            rangoEl.style.cssText = `position:absolute; left:${inicio}%; width:${ancho}%; height:100%; background:#28a745; color:white; display:flex; align-items:center; justify-content:space-between; font-size:10px; border-radius:4px;`;
+            rangoEl.innerHTML = `
+                <div class="control-borde" onmousedown="iniciarResize(event, '${rangoId}', 'izq')" ontouchstart="iniciarResize(event, '${rangoId}', 'izq')" style="width:10px; height:100%; background:rgba(0,0,0,0.15); cursor:ew-resize;"></div>
+                <div class="contenedor-nombres-rango" id="box-nombres-${rangoId}"></div>
+                <button onclick="event.stopPropagation(); enviarAPlano('${rangoId}')" style="background:#ffc107; color:black; border:none; padding:1px 3px; font-size:9px; border-radius:2px; font-weight:bold; cursor:pointer; margin-right:2px;">👉 Enviar</button>
+                <button onclick="event.stopPropagation(); delete baseDatosRangos['${rangoId}']; this.parentElement.remove();" style="background:none; border:none; color:white; font-weight:bold; cursor:pointer; margin-right:4px;">×</button>
+                <div class="control-borde" onmousedown="iniciarResize(event, '${rangoId}', 'der')" ontouchstart="iniciarResize(event, '${rangoId}', 'der')" style="width:10px; height:100%; background:rgba(0,0,0,0.15); cursor:ew-resize;"></div>
+            `;
 
-    zona.appendChild(rangoEl);
-}
+            rangoEl.addEventListener('dragover', (e) => e.preventDefault());
+            rangoEl.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const idNombre = e.dataTransfer.getData('text/plain');
+                const valNombre = document.getElementById(idNombre).querySelector('input').value;
+                
+                baseDatosRangos[rangoId].nombres.push(valNombre);
+                renderizarNombresEnRango(rangoId);
+                actualizarPlanoDinamico();
+            });
 
-        // --- 6. CONTROL DESLIZANTE DE LA LÍNEA AZUL ---
-        const controlLinea = document.getElementById('control-linea');
+            zona.appendChild(rangoEl);
+        }
+
+        function renderizarNombresEnRango(rangoId) {
+            const box = document.getElementById(`box-nombres-${rangoId}`);
+            box.innerHTML = '';
+            baseDatosRangos[rangoId].nombres.forEach((nom, index) => {
+                const tag = document.createElement('span');
+                tag.className = 'tag-nombre-rango';
+                tag.innerHTML = `${nom} <b style="color:red" onclick="event.stopPropagation(); eliminarNombreDeRango('${rangoId}', ${index})">x</b>`;
+                box.appendChild(tag);
+            });
+        }
+
+        function eliminarNombreDeRango(rangoId, index) {
+            baseDatosRangos[rangoId].nombres.splice(index, 1);
+            renderizarNombresEnRango(rangoId);
+            actualizarPlanoDinamico();
+        }
+
+        function iniciarResize(e, rangoId, borde) {
+            e.stopPropagation(); e.preventDefault();
+            rangoEditando = document.getElementById(rangoId);
+            bordeEditando = borde;
+            xInicial = e.touches ? e.touches[0].clientX : e.clientX;
+            anchoInicial = parseFloat(rangoEditando.style.width);
+            izquierdaInicial = parseFloat(rangoEditando.style.left);
+
+            window.addEventListener('mousemove', moverResize);
+            window.addEventListener('mouseup', detenerResize);
+            window.addEventListener('touchmove', moverResize, { passive: false });
+            window.addEventListener('touchend', detenerResize);
+        }
+
+        function moverResize(e) {
+            if (!rangoEditando) return;
+            const cx = e.touches ? e.touches[0].clientX : e.clientX;
+            const pctDelta = ((cx - xInicial) / rangoEditando.parentElement.getBoundingClientRect().width) * 100;
+            let nLeft = izquierdaInicial, nAncho = anchoInicial;
+
+            if (bordeEditando === 'izq') { nLeft += pctDelta; nAncho -= pctDelta; }
+            else { nAncho += pctDelta; }
+
+            if (nAncho > 3 && nLeft >= 0 && nLeft + nAncho <= 100 && !comprobarSuperposicion(rangoEditando.parentElement, nLeft, nAncho, rangoEditando.id)) {
+                rangoEditando.style.left = `${nLeft}%`;
+                rangoEditando.style.width = `${nAncho}%`;
+                baseDatosRangos[rangoEditando.id].inicio = nLeft;
+                baseDatosRangos[rangoEditando.id].fin = nLeft + nAncho;
+            }
+        }
+        function detenerResize() { rangoEditando = null; }
+
+        // --- 5. CONTROL DE LÍNEA TEMPORAL AZUL (CORREGIDO) ---
+        const ctrlAzul = document.getElementById('control-linea');
         const lineaAzul = document.getElementById('linea-azul');
-        let arrastrandoLinea = false;
+        const wrapperTimeline = document.getElementById('wrapper-timeline');
+        let dragAzul = false;
+        let porcentajeActualLineaAzul = 0; // Guardado relativo de 0 a 100% interno de la cabecera
 
-        controlLinea.addEventListener('mousedown', () => arrastrandoLinea = true);
-        window.addEventListener('mouseup', () => arrastrandoLinea = false);
+        ctrlAzul.onmousedown = () => dragAzul = true;
+        ctrlAzul.ontouchstart = () => dragAzul = true;
+        window.onmouseup = () => { dragAzul = false; dragPlanoObj = false; drawing = false; };
+        window.ontouchend = window.onmouseup;
+
+        function calcularYActualizarLinea(clientX) {
+            const rectWrapper = wrapperTimeline.getBoundingClientRect();
+            // Calcular X de forma puramente local al contenedor del calendario
+            let xLocal = clientX - rectWrapper.left;
+            xLocal = Math.max(0, Math.min(xLocal, rectWrapper.width));
+            
+            porcentajeActualLineaAzul = (xLocal / rectWrapper.width) * 100;
+            actualizarPosicionLineaAzul(porcentajeActualLineaAzul);
+        }
+
+        function actualizarPosicionLineaAzul(porcentaje) {
+            const totalAncho = cabecera.getBoundingClientRect().width;
+            let xPixel = (porcentaje / 100) * totalAncho;
+            
+            lineaAzul.style.left = `${xPixel}px`;
+            
+            // Mapeo exacto sobre el array de días
+            let indexDia = Math.floor((porcentaje / 100) * diasDelRango.length);
+            indexDia = Math.max(0, Math.min(indexDia, diasDelRango.length - 1));
+            
+            const fecha = diasDelRango[indexDia];
+            ctrlAzul.innerText = `◀ ${fecha.getDate()} ${fecha.toLocaleString('es-ES', {month:'short'})} ▶`;
+            
+            actualizarPlanoDinamico();
+        }
+
         window.addEventListener('mousemove', (e) => {
-            if (!arrastrandoLinea) return;
-            // Calcular posición relativa respecto al área de calendario
-            const contenedorCal = document.querySelector('.seccion-calendario');
-            const rect = contenedorCal.getBoundingClientRect();
-            let x = e.clientX - rect.left;
-            if(x < 90) x = 90; // Límite izquierdo aproximado de los controles
-            if(x > rect.width) x = rect.width;
-            
-            lineaAzul.style.left = `${x}px`;
-            
-            // Aquí se calcularía matemáticamente a qué día corresponde 'x' 
-            // basándose en el zoom y ancho de las celdas para actualizar el texto.
-            controlLinea.innerText = "📅 Día X";
+            if (dragAzul) calcularYActualizarLinea(e.clientX);
         });
-
-        // Soporte Touch para móviles
-        controlLinea.addEventListener('touchstart', () => arrastrandoLinea = true);
-        window.addEventListener('touchend', () => arrastrandoLinea = false);
         window.addEventListener('touchmove', (e) => {
-            if (!arrastrandoLinea) return;
-            const contenedorCal = document.querySelector('.seccion-calendario');
-            const rect = contenedorCal.getBoundingClientRect();
-            let touchX = e.touches[0].clientX - rect.left;
-            if(touchX < 90) touchX = 90;
-            lineaAzul.style.left = `${touchX}px`;
+            if (dragAzul && e.touches.length > 0) calcularYActualizarLinea(e.touches[0].clientX);
         });
 
-        // --- 7. APUNTES PARA ZONA PLANO (HERRAMIENTAS DE DIBUJO) ---
-        let herramientaActual = null;
-        function cambiarHerramienta(tipo) {
-            herramientaActual = tipo;
-            alert(`Herramienta seleccionada: ${tipo.toUpperCase()}. Haz clic y arrastra en el lienzo para dibujar (Lógica de vértices modificables a implementar vía HTML5 Canvas).`);
+        // Posición inicial fija (primer día) al cargar
+        setTimeout(() => actualizarPosicionLineaAzul(5), 100);
+
+        // --- 6. LOGICA GEOMÉTRICA DEL PLANO INTERACTIVO ---
+        let herramienta = null; 
+        let objetosPlano = []; 
+        let drawing = false, startX, startY, currentObjId = null;
+        let dragPlanoObj = false, resizePlanoObj = false, planoTargetId = null;
+
+        function setHerramienta(t) {
+            herramienta = t;
+            document.getElementById('btn-herramienta-piso').className = t === 'piso' ? 'activo' : '';
+            document.getElementById('btn-herramienta-hab').className = t === 'habitacion' ? 'activo' : '';
+        }
+
+        function iniciarDibujo(e) {
+            if (!herramienta) return;
+            if (e.target.classList.contains('vertice-resize') || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+            
+            const rect = document.getElementById('lienzo-plano').getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            startX = clientX - rect.left;
+            startY = clientY - rect.top;
+            drawing = true;
+            
+            currentObjId = `obj-${Date.now()}`;
+            const nuevoObj = {
+                id: currentObjId,
+                tipo: herramienta,
+                nombre: herramienta === 'piso' ? 'Nuevo Piso' : 'Habitación',
+                x: startX, y: startY, w: 90, h: 60
+            };
+
+            if (herramienta === 'piso' && detectarColisionPisos(nuevoObj)) {
+                drawing = false;
+                alert("No puedes dibujar un piso sobre otro.");
+                return;
+            }
+
+            if (herramienta === 'habitacion') {
+                let check = comprobarHabitacionDentroDePiso(nuevoObj);
+                if(!check.dentro) {
+                    drawing = false;
+                    alert("Las habitaciones solo pueden crearse dentro de un Piso.");
+                    return;
+                }
+            }
+
+            objetosPlano.push(nuevoObj);
+            renderizarPlano();
+            setHerramienta(null); 
+        }
+
+        function detectarColisionPisos(nuevo, idIgnorar = null) {
+            let colision = false;
+            objetosPlano.forEach(o => {
+                if (o.tipo !== 'piso' || o.id === idIgnorar) return;
+                if (nuevo.x < o.x + o.w && nuevo.x + nuevo.w > o.x && nuevo.y < o.y + o.h && nuevo.y + nuevo.h > o.y) {
+                    colision = true;
+                }
+            });
+            return colision;
+        }
+
+        function comprobarHabitacionDentroDePiso(hab) {
+            let dentro = false;
+            objetosPlano.forEach(p => {
+                if (p.tipo !== 'piso') return;
+                if (hab.x >= p.x && (hab.x + hab.w) <= (p.x + p.w) && hab.y >= p.y && (hab.y + hab.h) <= (p.y + p.h)) {
+                    dentro = true;
+                }
+            });
+            return { dentro };
+        }
+
+        function renderizarPlano() {
+            const lienzo = document.getElementById('lienzo-plano');
+            const ayuda = document.getElementById('ayuda-plano');
+            if(ayuda) ayuda.style.display = objetosPlano.length === 0 ? 'block' : 'none';
+
+            // Limpiar objetos viejos manteniendo la ayuda estructural
+            document.querySelectorAll('.objeto-plano').forEach(el => el.remove());
+
+            objetosPlano.forEach(o => {
+                const el = document.createElement('div');
+                el.className = `objeto-plano tipo-${o.tipo}`;
+                el.id = o.id;
+                el.style.cssText = `left:${o.x}px; top:${o.y}px; width:${o.w}px; height:${o.h}px;`;
+                
+                el.innerHTML = `
+                    <div class="header-objeto">
+                        <input type="text" value="${o.nombre}" onchange="objetosPlano.find(x=>x.id==='${o.id}').nombre=this.value">
+                        <button onclick="eliminarObjetoPlano('${o.id}')" style="background:none; border:none; color:red; font-weight:bold; cursor:pointer;">×</button>
+                    </div>
+                    <div class="lista-nombres-en-plano" id="dinamico-nombres-${o.id}"></div>
+                    <div class="vertice-resize" onmousedown="iniciarResizePlano(event, '${o.id}')" ontouchstart="iniciarResizePlano(event, '${o.id}')"></div>
+                `;
+                lienzo.appendChild(el);
+            });
+            actualizarPlanoDinamico();
+        }
+
+        function eliminarObjetoPlano(id) {
+            objetosPlano = objetosPlano.filter(o => o.id !== id);
+            renderizarPlano();
+        }
+
+        function iniciarResizePlano(e, id) {
+            e.stopPropagation(); e.preventDefault();
+            resizePlanoObj = true;
+            planoTargetId = id;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            startX = clientX;
+            startY = clientY;
+
+            const obj = objetosPlano.find(o => o.id === id);
+            anchoInicial = obj.w;
+            hInicial = obj.h;
+
+            window.addEventListener('mousemove', moverResizePlano);
+            window.addEventListener('mouseup', detenerResizePlano);
+            window.addEventListener('touchmove', moverResizePlano, {passive:false});
+            window.addEventListener('touchend', detenerResizePlano);
+        }
+
+        function moverResizePlano(e) {
+            if (!resizePlanoObj) return;
+            const cx = e.touches ? e.touches[0].clientX : e.clientX;
+            const cy = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            const obj = objetosPlano.find(o => o.id === planoTargetId);
+            let nw = Math.max(60, anchoInicial + (cx - startX));
+            let nh = Math.max(40, hInicial + (cy - startY));
+
+            let clon = { ...obj, w: nw, h: nh };
+
+            if (obj.tipo === 'piso' && detectarColisionPisos(clon, obj.id)) return;
+            
+            obj.w = nw;
+            obj.h = nh;
+            
+            const dom = document.getElementById(obj.id);
+            if(dom) {
+                dom.style.width = `${nw}px`;
+                dom.style.height = `${nh}px`;
+            }
+        }
+
+        function detenerResizePlano() {
+            if(resizePlanoObj && planoTargetId) {
+                const obj = objetosPlano.find(o => o.id === planoTargetId);
+                if(obj && obj.tipo === 'habitacion') {
+                    let res = comprobarHabitacionDentroDePiso(obj);
+                    if(!res.dentro) {
+                        alert("Las habitaciones deben estar completamente dentro de los límites de un Piso.");
+                        eliminarObjetoPlano(obj.id);
+                    }
+                }
+            }
+            resizePlanoObj = false;
+            planoTargetId = null;
+        }
+
+        // --- 7. ENVIAR RANGOS A ELEMENTOS DEL PLANO ---
+        function enviarAPlano(rangoId) {
+            if(baseDatosRangos[rangoId].nombres.length === 0) {
+                alert("Añade nombres primero arrastrándolos a este rango.");
+                return;
+            }
+            if(objetosPlano.length === 0) {
+                alert("Debes dibujar al menos un Piso o Habitación en el plano inferior.");
+                return;
+            }
+
+            let opciones = objetosPlano.map((o, idx) => `${idx} - ${o.nombre} (${o.tipo.toUpperCase()})`).join("\n");
+            let eleccion = prompt(`Escribe el número del espacio al que deseas asignar este rango:\n${opciones}`);
+            
+            if(eleccion !== null && objetosPlano[parseInt(eleccion)]) {
+                baseDatosRangos[rangoId].destinoPlano = objetosPlano[parseInt(eleccion)].id;
+                actualizarPlanoDinamico();
+                alert(`Rango asignado correctamente a: ${objetosPlano[parseInt(eleccion)].nombre}`);
+            }
+        }
+
+        function actualizarPlanoDinamico() {
+            objetosPlano.forEach(o => {
+                const box = document.getElementById(`dinamico-nombres-${o.id}`);
+                if(box) box.innerHTML = '';
+            });
+
+            for(let rId in baseDatosRangos) {
+                let rango = baseDatosRangos[rId];
+                if(porcentajeActualLineaAzul >= rango.inicio && porcentajeActualLineaAzul <= rango.fin) {
+                    if(rango.destinoPlano) {
+                        const boxDestino = document.getElementById(`dinamico-nombres-${rango.destinoPlano}`);
+                        if(boxDestino) {
+                            rango.nombres.forEach(nom => {
+                                const sp = document.createElement('span');
+                                sp.className = 'tag-plano-dinamico';
+                                sp.innerText = nom;
+                                boxDestino.appendChild(sp);
+                            });
+                        }
+                    }
+                }
+            }
         }
     </script>
 </body>
