@@ -362,32 +362,114 @@
         const contenedorLineas = document.getElementById('contenedor-lineas');
 
         function agregarLinea() {
-            const id = Date.now();
-            const div = document.createElement('div');
-            div.className = 'linea-reserva';
-            div.id = `linea-${id}`;
-            div.innerHTML = `
-                <div class="controles-linea">
-                    <button onclick="moverLinea('${id}', 'subir')">▲</button>
-                    <button onclick="moverLinea('${id}', 'bajar')">▼</button>
-                    <button onclick="document.getElementById('linea-${id}').remove()" style="color:red;">X</button>
-                </div>
-                <input type="text" value="Nueva Línea" style="width:100px; margin-right:10px;">
-                <div class="zona-rangos" style="flex:1; background:#e2e8f0; height:30px; position:relative; border-radius:4px;">
-                     <span style="font-size:10px; color:#777; margin-left:10px; line-height:30px;">[Haz click para trazar rango]</span>
-                </div>
-            `;
-            contenedorLineas.appendChild(div);
-        }
+    const id = Date.now();
+    const div = document.createElement('div');
+    div.className = 'linea-reserva';
+    div.id = `linea-${id}`;
+    
+    // Estructura de la línea con su zona de tracks para rangos
+    div.innerHTML = `
+        <div class="controles-linea">
+            <button onclick="moverLinea('${id}', 'subir')">▲</button>
+            <button onclick="moverLinea('${id}', 'bajar')">▼</button>
+            <button onclick="document.getElementById('linea-${id}').remove()" style="color:red; font-weight:bold;">X</button>
+        </div>
+        <input type="text" value="Línea ${contenedorLineas.children.length + 1}" style="width:90px; margin-right:10px; border:1px solid #ccc; padding:2px;">
+        <div class="zona-rangos" id="zona-rangos-${id}" onclick="crearRango(event, '${id}')" 
+             style="flex:1; background:#e2e8f0; height:35px; position:relative; border-radius:4px; overflow:hidden;">
+        </div>
+    `;
+    contenedorLineas.appendChild(div);
+}
 
-        function moverLinea(id, direccion) {
-            const el = document.getElementById(`linea-${id}`);
-            if (direccion === 'subir' && el.previousElementSibling) {
-                contenedorLineas.insertBefore(el, el.previousElementSibling);
-            } else if (direccion === 'bajar' && el.nextElementSibling) {
-                contenedorLineas.insertBefore(el.nextElementSibling, el);
-            }
+// Función para crear un rango al hacer clic
+function crearRango(event, lineaId) {
+    // Si hacemos clic en un rango ya creado o en un nombre, no creamos otro encima
+    if (event.target.className === 'rango-creado' || event.target.tagName === 'INPUT') return;
+
+    const zona = document.getElementById(`zona-rangos-${lineaId}`);
+    const rect = zona.getBoundingClientRect();
+    
+    // Calcular el porcentaje de clic respecto al ancho total de la línea de tiempo
+    const clickX = event.clientX - rect.left;
+    const porcentajeClick = (clickX / rect.width) * 100;
+
+    // Definimos un ancho estándar inicial para el rango (ej. 15% del total, aprox. 6 días)
+    let anchoRango = 15;
+    let posicionIzquierda = porcentajeClick - (anchoRango / 2);
+    
+    // Forzar límites para que no se salga de los bordes (0% a 100%)
+    if (posicionIzquierda < 0) posicionIzquierda = 0;
+    if (posicionIzquierda + anchoRango > 100) posicionIzquierda = 100 - anchoRango;
+
+    // --- CONTROL DE SUPERPOSICIÓN ---
+    const rangosExistentes = zona.querySelectorAll('.rango-creado');
+    let seSuperpone = false;
+
+    rangosExistentes.forEach(rango => {
+        const rIzquierda = parseFloat(rango.style.left);
+        const rDerecha = rIzquierda + parseFloat(rango.style.width);
+        const nuevoDerecha = posicionIzquierda + anchoRango;
+
+        // Fórmula matemática de colisión/solapamiento de rangos
+        if (posicionIzquierda < rDerecha && nuevoDerecha > rIzquierda) {
+            seSuperpone = true;
         }
+    });
+
+    if (seSuperpone) {
+        alert("¡Error! No puedes superponer rangos en la misma línea.");
+        return;
+    }
+
+    // --- CREACIÓN VISUAL DEL RANGO ---
+    const rangoId = Date.now();
+    const rangoEl = document.createElement('div');
+    rangoEl.className = 'rango-creado';
+    rangoEl.id = `rango-${rangoId}`;
+    
+    // Estilos CSS dinámicos para posicionarlo
+    rangoEl.style.position = 'absolute';
+    rangoEl.style.left = `${posicionIzquierda}%`;
+    rangoEl.style.width = `${anchoRango}%`;
+    rangoEl.style.height = '100%';
+    rangoEl.style.background = '#28a745';
+    rangoEl.style.color = 'white';
+    rangoEl.style.display = 'flex';
+    rangoEl.style.alignItems = 'center';
+    rangoEl.style.justifyContent = 'space-between';
+    rangoEl.style.padding = '0 5px';
+    rangoEl.style.fontSize = '11px';
+    rangoEl.style.borderRadius = '4px';
+
+    rangoEl.innerHTML = `
+        <span class="nombre-asignado" style="pointer-events:none; font-weight:bold;">Vacío</span>
+        <button onclick="event.stopPropagation(); this.parentElement.remove();" style="background:none; border:none; color:white; font-weight:bold; cursor:pointer;">×</button>
+    `;
+
+    // --- SOPORTE DRAG & DROP PARA SOLTAR NOMBRES AQUÍ ---
+    rangoEl.addEventListener('dragover', (e) => {
+        e.preventDefault(); // Permitir soltar
+        rangoEl.style.background = '#218838'; // Feedback visual al pasar por encima
+    });
+
+    rangoEl.addEventListener('dragleave', () => {
+        rangoEl.style.background = '#28a745';
+    });
+
+    rangoEl.addEventListener('drop', (e) => {
+        e.preventDefault();
+        rangoEl.style.background = '#28a745';
+        
+        const idNombreElemento = e.dataTransfer.getData('text/plain');
+        const inputNombre = document.getElementById(idNombreElemento).querySelector('input');
+        
+        // Cambiamos el texto del rango por el nombre de la persona arrastrada
+        rangoEl.querySelector('.nombre-asignado').innerText = inputNombre.value;
+    });
+
+    zona.appendChild(rangoEl);
+}
 
         // --- 6. CONTROL DESLIZANTE DE LA LÍNEA AZUL ---
         const controlLinea = document.getElementById('control-linea');
