@@ -1,1226 +1,435 @@
 <!DOCTYPE html>
-<html lang="es"><head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Planificador de Vacaciones</title>
-<style>
-:root{
-  --s0:#f1efe8;--s1:#f8f7f4;--s2:#fff;
-  --tp:#2c2c2a;--ts:#5f5e5a;--tm:#888780;--ta:#185fa5;--td:#a32d2d;
-  --b:rgba(0,0,0,0.1);--bs:rgba(0,0,0,0.18);--bst:rgba(0,0,0,0.3);--ba:#378add;
-  --bga:#e6f1fb;--r:8px;--font:system-ui,-apple-system,sans-serif;
-}
-@media(prefers-color-scheme:dark){:root{
-  --s0:#1a1a18;--s1:#232321;--s2:#2c2c2a;
-  --tp:#e8e6df;--ts:#9c9a92;--tm:#6b6962;--ta:#85b7eb;--td:#f09595;
-  --b:rgba(255,255,255,0.08);--bs:rgba(255,255,255,0.14);--bst:rgba(255,255,255,0.25);
-  --ba:#378add;--bga:#042c53;
-}}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:var(--font);color:var(--tp);background:var(--s0);height:100dvh;overflow:hidden;touch-action:pan-x pan-y}
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>App de Planificación Horizontal</title>
+    <style>
+        /* --- CONFIGURACIÓN DE PANTALLA Y BLOQUEO HORIZONTAL --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+        }
 
-/* ── DESKTOP LAYOUT ── */
-#app{display:grid;grid-template-columns:180px 1fr;gap:8px;height:100dvh;padding:10px;overflow:hidden}
-#left{display:flex;flex-direction:column;gap:8px;overflow:hidden}
-.panel{background:var(--s1);border:0.5px solid var(--b);border-radius:12px;padding:10px}
-.panel h3{font-size:11px;font-weight:500;color:var(--ts);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
-#name-input{width:100%;padding:5px 8px;font-size:13px;border:0.5px solid var(--bs);border-radius:var(--r);background:var(--s2);color:var(--tp);font-family:var(--font);outline:none}
-#name-input:focus{border-color:var(--ba)}
-#add-btn{width:100%;margin-top:6px;padding:5px;font-size:13px;border:0.5px solid var(--bs);border-radius:var(--r);background:var(--s2);color:var(--tp);cursor:pointer;font-family:var(--font)}
-#add-btn:hover{background:var(--s0)}
-#chips-list{display:flex;flex-direction:column;gap:6px;margin-top:4px}
-.person-chip{padding:5px 10px;border-radius:6px;cursor:grab;user-select:none;border:1.5px solid rgba(255,255,255,0.25);font-size:12px;font-weight:500;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.35);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:transform .1s;min-height:30px;display:flex;align-items:center}
-.person-chip:active{cursor:grabbing;transform:scale(1.03)}
-#right{display:flex;flex-direction:column;gap:0;overflow:hidden;min-height:0}
+        /* Aviso para forzar el modo horizontal */
+        #bloqueo-vertical {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #111;
+            color: white;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
 
-/* TIMELINE */
-#timeline-panel{background:var(--s1);border:0.5px solid var(--b);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;flex-shrink:0;overflow:hidden}
-#cal-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.month-label{font-size:11px;font-weight:500;color:var(--ts)}
-.fp-btn{padding:4px 10px;font-size:12px;border:0.5px solid var(--bs);border-radius:var(--r);background:var(--s2);color:var(--tp);cursor:pointer;font-family:var(--font);white-space:nowrap}
-.fp-btn:hover{background:var(--s0)}
-.fp-btn.active{border-color:var(--ba);color:var(--ta);background:var(--bga)}
-.fp-btn:disabled{opacity:0.4;cursor:default}
-#zoom-val{font-size:12px;color:var(--tm);min-width:36px}
-#cal-track-wrap{overflow-x:auto;overflow-y:hidden;position:relative}
-#cal-track-inner{position:relative;display:inline-flex;flex-direction:column;min-width:100%}
-#cal-header{display:flex;flex-shrink:0;border-bottom:0.5px solid var(--b);background:var(--s1)}
-.day-col-h{display:flex;flex-direction:column;align-items:center;border-right:0.5px solid var(--b);flex-shrink:0;padding:2px 0;cursor:pointer;position:relative}
-.day-col-h:hover{background:var(--bga)}
-.day-col-h.selected-day{background:var(--bga)}
-.day-col-h.selected-day .day-num{color:var(--ta);font-weight:700}
-.day-num{font-size:11px;color:var(--ts);text-align:center;width:100%;font-weight:500}
-.day-num.weekend{color:var(--tm)}
-.day-name{font-size:9px;color:var(--tm)}
-.month-sep{background:var(--bs);width:1.5px;height:100%;position:absolute;left:0;top:0}
-#tracks-body{position:relative;display:flex;flex-direction:column}
-.track-row{display:flex;align-items:center;border-bottom:0.5px solid var(--b);height:36px;position:relative;flex-shrink:0}
-.track-row.drag-over-row{background:var(--bga)}
-.track-label-cell{width:110px;flex-shrink:0;padding:0 4px;display:flex;align-items:center;gap:3px;border-right:0.5px solid var(--b)}
-.drag-handle{cursor:grab;color:var(--tm);font-size:14px;padding:0 2px;flex-shrink:0;user-select:none;line-height:1}
-.drag-handle:active{cursor:grabbing}
-.tl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.track-name-input{font-size:11px;color:var(--ts);background:transparent;border:none;outline:none;width:100%;font-family:var(--font);cursor:text;padding:0;min-width:0}
-.track-name-input:focus{color:var(--tp)}
-.track-bg{flex:1;height:100%;position:relative;overflow:visible;cursor:crosshair;user-select:none}
-.range-fill{position:absolute;height:18px;top:9px;border-radius:4px;opacity:0.68;z-index:1;cursor:pointer;transition:opacity .15s}
-.range-fill:hover{opacity:1;outline:2px solid rgba(255,255,255,0.5)}
-.range-fill.deleting{opacity:0.3;outline:2px dashed var(--td)}
-.range-handle{position:absolute;top:0;bottom:0;width:8px;cursor:ew-resize;z-index:4;background:rgba(255,255,255,0.3);border-radius:2px}
-.range-handle.left{left:0}.range-handle.right{right:0}
-.anchor-line{position:absolute;top:4px;bottom:4px;width:3px;border-radius:2px;pointer-events:none;z-index:12}
-.range-ghost{position:absolute;height:18px;top:9px;border-radius:4px;pointer-events:none;z-index:2;opacity:0.3;border:1.5px dashed}
-.track-chip{position:absolute;top:6px;height:22px;border-radius:5px;display:flex;align-items:center;font-size:10px;font-weight:500;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.35);border:1.5px solid rgba(255,255,255,0.3);cursor:grab;z-index:10;padding:0 6px;white-space:nowrap;pointer-events:all}
-.chip-del{margin-left:4px;cursor:pointer;opacity:0.7;font-size:9px;line-height:1;padding:0 1px}
-.chip-del:hover{opacity:1}
-.add-track-row{height:28px;display:flex;align-items:center;padding-left:4px}
-#delete-mode-bar{display:none;background:#fff0f0;border:1px solid #f5c0c0;border-radius:6px;padding:4px 10px;font-size:12px;color:var(--td);align-items:center;gap:8px;flex-shrink:0}
-#delete-mode-bar.visible{display:flex}
-/* cursor */
-#cursor-wrap{position:absolute;top:0;width:24px;transform:translateX(-50%);display:none;z-index:31;pointer-events:none}
-#cursor-line{width:2px;background:var(--ta);opacity:0.85;border-radius:1px;margin:0 auto}
-#cursor-arrows{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:none;align-items:center;background:var(--ta);border-radius:10px;padding:2px 5px;font-size:11px;color:#fff;white-space:nowrap;pointer-events:all;cursor:ew-resize;user-select:none;box-shadow:0 1px 4px rgba(0,0,0,0.25)}
-#cursor-wrap:hover #cursor-arrows{display:flex}
-#cursor-handle-zone{position:absolute;top:0;left:0;right:0;bottom:0;cursor:ew-resize;pointer-events:all}
+        /* Ocultar el aviso solo si está en horizontal */
+        @media screen and (orientation: landscape) {
+            #bloqueo-vertical {
+                display: none;
+            }
+        }
 
-/* SPLITTER */
-#splitter{height:7px;background:var(--s0);cursor:row-resize;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin:4px 0;border-radius:4px;transition:background .15s}
-#splitter:hover,#splitter.dragging{background:var(--bga)}
-#splitter::before{content:'';display:block;width:32px;height:3px;border-radius:2px;background:var(--bs)}
+        /* --- ESTRUCTURA PRINCIPAL --- */
+        .contenedor-app {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
 
-/* FLOOR PLAN */
-#fp-panel{background:var(--s1);border:0.5px solid var(--b);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;overflow:hidden;min-height:40px}
-#fp-controls{display:flex;gap:6px;align-items:center;flex-shrink:0;flex-wrap:wrap}
-#fp-date-label{font-size:12px;color:var(--ta);font-weight:500}
-#fp-viewport{flex:1;overflow:hidden;position:relative;border:0.5px solid var(--b);border-radius:8px;background:var(--s2);min-height:60px;cursor:crosshair}
-#fp-canvas{position:absolute;top:0;left:0;transform-origin:0 0}
-.floor-rect{position:absolute;border:2px solid;border-radius:4px;background:rgba(128,128,128,0.04);z-index:1}
-.room-rect{position:absolute;border:1.5px solid;border-radius:3px;background:rgba(128,128,128,0.06);z-index:2}
-.el-label{position:absolute;top:3px;left:4px;font-size:10px;font-weight:500;outline:none;background:transparent;border:none;cursor:text;font-family:var(--font);max-width:90%;white-space:nowrap;color:inherit}
-.fp-corner{position:absolute;width:10px;height:10px;background:rgba(255,255,255,0.8);border:1.5px solid rgba(0,0,0,0.25);border-radius:2px;z-index:15}
-.fp-corner.tl{top:-4px;left:-4px;cursor:nwse-resize}
-.fp-corner.tr{top:-4px;right:-4px;cursor:nesw-resize}
-.fp-corner.bl{bottom:-4px;left:-4px;cursor:nesw-resize}
-.fp-corner.br{bottom:-4px;right:-4px;cursor:nwse-resize}
-.draw-ghost{position:absolute;border:1.5px dashed var(--ta);border-radius:3px;pointer-events:none;background:var(--bga);opacity:0.35}
-.fp-chip{position:absolute;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:500;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.35);border:1.5px solid rgba(255,255,255,0.3);cursor:grab;z-index:20;user-select:none;white-space:nowrap}
-#fp-canvas.drag-over-fp{outline:2px dashed var(--ba);outline-offset:2px}
+        /* Zona 1: Lateral de Nombres */
+        .lateral-nombres {
+            width: 250px;
+            height: 100%;
+            background: #fff;
+            border-right: 2px solid #ccc;
+            transition: width 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .lateral-nombres.oculto {
+            width: 0;
+            border-right: none;
+        }
 
-/* ── MOBILE STYLES ── */
-#mobile-nav{display:none}
-#mobile-fab{display:none}
+        /* Zona 2 y 3: Contenedor Central y de Plano */
+        .area-principal {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
 
-/* Long-press delete toast */
-#lp-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;pointer-events:none;opacity:0;transition:opacity .2s;z-index:9999;white-space:nowrap}
-#lp-toast.show{opacity:1}
+        /* Botón flotante para ocultar/mostrar panel izquierdo */
+        .btn-toggle-lateral {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            z-index: 10;
+            padding: 8px 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
 
-/* Touch drag ghost */
-#touch-ghost{position:fixed;pointer-events:none;z-index:99999;opacity:0.85;display:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:500;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.35);border:1.5px solid rgba(255,255,255,0.25);transform:translate(-50%,-50%)}
+        /* Zona 2: Calendario y Líneas de Tiempo */
+        .seccion-calendario {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: auto;
+            background: #fafafa;
+            padding: 50px 10px 10px 10px; /* Espacio para el botón flotante */
+            position: relative;
+        }
 
-@media(max-width:640px){
-  body{overflow:hidden}
-  #app{
-    grid-template-columns:1fr;
-    grid-template-rows:1fr auto;
-    padding:0;
-    gap:0;
-    height:100dvh;
-  }
-  #left{display:none;position:fixed;inset:0;z-index:200;background:var(--s0);padding:16px;gap:12px;overflow-y:auto}
-  #left.mobile-open{display:flex}
-  #left .panel{border-radius:16px;padding:14px}
-  #left .panel h3{font-size:13px;margin-bottom:12px}
-  #name-input{padding:10px 12px;font-size:16px;border-radius:10px}
-  #add-btn{padding:12px;font-size:15px;border-radius:10px;margin-top:10px}
-  .person-chip{min-height:44px;font-size:14px;border-radius:10px;padding:8px 14px}
-  #chips-list{gap:8px}
+        /* El Timeline Slider Azul */
+        .linea-temporal-azul {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%; /* Dinámico con JS */
+            width: 4px;
+            background: #0056b3;
+            z-index: 5;
+            pointer-events: none;
+        }
+        .control-linea-azul {
+            position: absolute;
+            top: 45px;
+            transform: translateX(-50%);
+            background: #0056b3;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            cursor: ew-resize;
+            pointer-events: auto;
+        }
 
-  #right{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+        /* Rango de Días (Soporta zoom escalando este contenedor con JS) */
+        .contenedor-dias {
+            display: flex;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 10px;
+            transform-origin: left top;
+        }
+        .dia-celda {
+            min-width: 60px;
+            text-align: center;
+            background: #eee;
+            border-right: 1px solid #ccc;
+            padding: 5px 0;
+            font-size: 11px;
+        }
 
-  #timeline-panel{
-    border-radius:0;
-    border-left:none;border-right:none;border-top:none;
-    padding:8px 10px 6px;
-    flex-shrink:0;
-  }
-  #cal-controls{gap:5px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px}
-  #cal-controls::-webkit-scrollbar{display:none}
-  .month-label{font-size:12px;white-space:nowrap}
-  .fp-btn{padding:7px 11px;font-size:12px;flex-shrink:0;min-height:36px;border-radius:8px}
+        /* Líneas de Reserva */
+        .linea-reserva {
+            display: flex;
+            align-items: center;
+            background: white;
+            margin-bottom: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+        }
+        .controles-linea {
+            display: flex;
+            gap: 2px;
+            margin-right: 10px;
+        }
+        .controles-linea button {
+            padding: 2px 5px;
+            font-size: 10px;
+        }
 
-  #splitter{margin:0;height:10px;border-radius:0;cursor:row-resize}
+        /* Zona 3: El Plano (Inferior) */
+        .seccion-plano {
+            height: 40%;
+            background: #e9ecef;
+            border-top: 3px solid #bbb;
+            position: relative;
+            transition: height 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .seccion-plano.oculto {
+            height: 0;
+            border-top: none;
+            overflow: hidden;
+        }
+        .cabecera-plano {
+            background: #ddd;
+            padding: 5px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .canvas-plano {
+            flex: 1;
+            background: #fff;
+            margin: 5px;
+            border: 1px dashed #aaa;
+            position: relative;
+        }
 
-  #fp-panel{border-radius:0;border-left:none;border-right:none;border-bottom:none;padding:8px 10px 6px}
-  #fp-controls{gap:5px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px}
-  #fp-controls::-webkit-scrollbar{display:none}
-
-  .track-row{height:44px}
-  .track-label-cell{width:90px}
-  .track-name-input{font-size:12px}
-  .range-fill{height:22px;top:11px;border-radius:5px}
-  .range-handle{width:16px} /* wider touch targets */
-  .track-chip{height:28px;top:8px;font-size:11px;border-radius:6px;padding:0 8px}
-  .chip-del{font-size:11px;padding:0 3px}
-
-  /* Mobile bottom nav */
-  #mobile-nav{
-    display:flex;
-    background:var(--s1);
-    border-top:0.5px solid var(--b);
-    flex-shrink:0;
-    z-index:100;
-  }
-  .mnav-btn{
-    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:3px;padding:8px 4px;font-size:10px;color:var(--tm);border:none;background:none;
-    cursor:pointer;font-family:var(--font);min-height:56px;
-  }
-  .mnav-btn.active{color:var(--ta)}
-  .mnav-btn .micon{font-size:20px;line-height:1}
-  .mnav-btn .mlabel{font-size:10px;line-height:1}
-
-  /* Mobile personas overlay close btn */
-  #mobile-close-personas{
-    display:flex;align-items:center;justify-content:space-between;
-    margin-bottom:8px;
-  }
-  #mobile-close-personas h2{font-size:16px;font-weight:600;color:var(--tp)}
-  #btn-close-personas{
-    background:var(--s2);border:0.5px solid var(--bs);border-radius:20px;
-    padding:6px 14px;font-size:13px;cursor:pointer;color:var(--tp);font-family:var(--font);
-  }
-
-  /* Zoom buttons instead of slider */
-  .zoom-btn-group{display:flex;gap:4px;align-items:center;flex-shrink:0}
-  .zoom-btn{width:32px;height:32px;border-radius:8px;border:0.5px solid var(--bs);background:var(--s2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tp)}
-
-  /* fp corner bigger for touch */
-  .fp-corner{width:18px;height:18px;border-radius:4px}
-  .fp-corner.tl{top:-8px;left:-8px}
-  .fp-corner.tr{top:-8px;right:-8px}
-  .fp-corner.bl{bottom:-8px;left:-8px}
-  .fp-corner.br{bottom:-8px;right:-8px}
-
-  .fp-chip{padding:5px 12px;font-size:12px;min-height:30px;border-radius:8px}
-
-  #delete-mode-bar{font-size:11px;padding:5px 10px}
-
-  /* Day header bigger tap targets */
-  .day-col-h{padding:4px 0}
-  .day-num{font-size:12px}
-  .day-name{font-size:10px}
-
-  /* cursor arrows bigger */
-  #cursor-arrows{padding:5px 10px;font-size:13px}
-}
-</style>
+        /* Utilidades sencillas */
+        .header-seccion {
+            padding: 10px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #ddd;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .lista-items {
+            list-style: none;
+            overflow-y: auto;
+            flex: 1;
+            padding: 10px;
+        }
+        .item-nombre {
+            display: flex;
+            justify-content: space-between;
+            background: #e2e8f0;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            cursor: grab;
+        }
+        .item-nombre input {
+            border: none;
+            background: transparent;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-<div id="touch-ghost"></div>
-<div id="lp-toast"></div>
-<div id="app">
-  <div id="left">
-    <!-- Mobile header -->
-    <div id="mobile-close-personas">
-      <h2>Personas</h2>
-      <button id="btn-close-personas" onclick="closeMobilePersonas()">Cerrar</button>
+
+    <div id="bloqueo-vertical">
+        <h2>🔄 Por favor, gira tu dispositivo</h2>
+        <p>Esta aplicación está diseñada para usarse exclusivamente en modo horizontal (Landscape).</p>
     </div>
-    <div class="panel" style="flex-shrink:0">
-      <h3>Añadir persona</h3>
-      <input id="name-input" placeholder="Nombre..." maxlength="20">
-      <button id="add-btn" onclick="addPerson()">+ Añadir</button>
-    </div>
-    <div class="panel" style="flex:1;overflow-y:auto">
-      <h3>Arrastra al calendario</h3>
-      <div id="chips-list"></div>
-    </div>
-  </div>
-  <div id="right">
-    <div id="timeline-panel" style="flex: 0 0 auto; height: 213px;">
-      <div id="cal-controls">
-        <span class="month-label">Jul — Ago 2025</span>
-        <span style="flex:1"></span>
-        <!-- Desktop zoom slider (hidden on mobile) -->
-        <label class="desktop-only" style="font-size:12px;color:var(--ts)">Zoom</label>
-        <input type="range" id="zoom-slider" min="20" max="90" value="36" oninput="setZoom(+this.value)" class="desktop-only" style="width:90px;cursor:pointer">
-        <span id="zoom-val" class="desktop-only">36px</span>
-        <!-- Mobile zoom buttons -->
-        <div class="zoom-btn-group mobile-only" style="display:none">
-          <button class="zoom-btn" onclick="adjustZoom(-6)">−</button>
-          <span id="zoom-val-m" style="font-size:11px;color:var(--tm);min-width:28px;text-align:center">36</span>
-          <button class="zoom-btn" onclick="adjustZoom(6)">+</button>
+
+    <div class="contenedor-app">
+        
+        <div class="lateral-nombres" id="panel-izquierdo">
+            <div class="header-seccion">
+                <span>Nombres</span>
+                <button onclick="agregarNombre()">+</button>
+            </div>
+            <ul class="lista-items" id="lista-nombres">
+                </ul>
         </div>
-        <button class="fp-btn" id="btn-undo" onclick="undo()" title="Deshacer">↩</button>
-        <button class="fp-btn" id="btn-delete-range" onclick="toggleDeleteMode()">✂ Borrar</button>
-        <button class="fp-btn" onclick="saveFile()">💾</button>
-        <label class="fp-btn" style="cursor:pointer">📂<input type="file" accept=".html,.json" style="display:none" onchange="loadFile(event)"></label>
-        <button class="fp-btn" onclick="addTrack()">+ Línea</button>
-      </div>
-      <div id="delete-mode-bar">
-        <span>Toca un rango para eliminarlo.</span>
-        <button class="fp-btn" onclick="toggleDeleteMode()" style="padding:2px 8px">Cancelar</button>
-      </div>
-      <div id="cal-track-wrap">
-        <div id="cal-track-inner" style="width: 1550px;">
-          <div id="cal-header" style="width: 1550px;"></div>
-          <div id="tracks-body"></div>
-          <div class="add-track-row" id="add-track-row">
-            <button class="fp-btn" style="font-size:11px;padding:2px 8px" onclick="addTrack()">+ añadir línea</button>
-          </div>
-          <div id="cursor-wrap">
-            <div id="cursor-line"></div>
-            <div id="cursor-arrows">◀ ▶</div>
-            <div id="cursor-handle-zone"></div>
-          </div>
+
+        <div class="area-principal">
+            
+            <button class="btn-toggle-lateral" onclick="toggleLateral()">☰ Nombres</button>
+
+            <div class="seccion-calendario">
+                
+                <div style="margin-bottom: 10px; display: flex; gap: 10px; align-items: center;">
+                    <span style="font-size: 12px; font-weight: bold; margin-left: 90px;">Zoom:</span>
+                    <button onclick="cambiarZoom(0.1)">+</button>
+                    <button onclick="cambiarZoom(-0.1)">-</button>
+                    <button onclick="agregarLinea()">+ Añadir Línea</button>
+                </div>
+
+                <div class="linea-temporal-azul" id="linea-azul">
+                    <div class="control-linea-azul" id="control-linea">◀ 23 Jul ▶</div>
+                </div>
+
+                <div class="contenedor-dias" id="calendario-cabecera">
+                    </div>
+
+                <div id="contenedor-lineas">
+                    </div>
+            </div>
+
+            <div class="seccion-plano" id="panel-plano">
+                <div class="cabecera-plano">
+                    <strong>Plano / Habitaciones</strong>
+                    <div>
+                        <button onclick="cambiarHerramienta('piso')">+ Dibujar Piso</button>
+                        <button onclick="cambiarHerramienta('habitacion')">+ Dibujar Habitación</button>
+                        <button onclick="togglePlano()" style="background: #dc3545; color: white; border: none; padding: 2px 6px;">Ocultar Plano</button>
+                    </div>
+                </div>
+                <div class="canvas-plano" id="lienzo-plano">
+                    <span style="color: #aaa; position: absolute; top:40%; left:40%; pointer-events: none;">[Área de Dibujo Interactiva]</span>
+                </div>
+            </div>
+
+            <button id="btn-mostrar-plano" onclick="togglePlano()" style="display:none; position: absolute; bottom: 10px; right: 10px; z-index: 10; padding: 5px 10px;">Mostrar Plano</button>
         </div>
-      </div>
     </div>
-    <!-- SPLITTER -->
-    <div id="splitter"></div>
-    <!-- FLOOR PLAN -->
-    <div id="fp-panel" style="flex: 1 1 0%;">
-      <div id="fp-controls">
-        <span id="fp-date-label">📅</span>
-        <span style="flex:1"></span>
-        <label class="desktop-only" style="font-size:12px;color:var(--ts)">Zoom</label>
-        <input type="range" id="fp-zoom-slider" min="30" max="200" value="100" oninput="setFPZoom(+this.value)" class="desktop-only" style="width:80px;cursor:pointer">
-        <span id="fp-zoom-val" class="desktop-only" style="font-size:12px;color:var(--tm);min-width:36px">100%</span>
-        <div class="zoom-btn-group mobile-only" style="display:none">
-          <button class="zoom-btn" onclick="adjustFPZoom(-10)">−</button>
-          <span id="fp-zoom-val-m" style="font-size:11px;color:var(--tm);min-width:32px;text-align:center">100%</span>
-          <button class="zoom-btn" onclick="adjustFPZoom(10)">+</button>
-        </div>
-        <button class="fp-btn" id="tool-floor" onclick="setTool('floor')">Piso</button>
-        <button class="fp-btn active" id="tool-room" onclick="setTool('room')">Hab.</button>
-        <button class="fp-btn" onclick="clearFloor()" style="color:var(--td)">🗑</button>
-      </div>
-      <div id="fp-viewport" style="cursor: crosshair;">
-        <div id="fp-canvas" style="width: 2000px; height: 2000px;"></div>
-      </div>
-    </div>
-    <!-- Mobile bottom nav -->
-    <nav id="mobile-nav">
-      <button class="mnav-btn" onclick="openMobilePersonas()">
-        <span class="micon">👥</span>
-        <span class="mlabel">Personas</span>
-      </button>
-      <button class="mnav-btn active" id="mnav-cal" onclick="switchMobileTab('cal')">
-        <span class="micon">📅</span>
-        <span class="mlabel">Calendario</span>
-      </button>
-      <button class="mnav-btn" id="mnav-fp" onclick="switchMobileTab('fp')">
-        <span class="micon">🏠</span>
-        <span class="mlabel">Plano</span>
-      </button>
-      <button class="mnav-btn" onclick="saveFile()">
-        <span class="micon">💾</span>
-        <span class="mlabel">Guardar</span>
-      </button>
-    </nav>
-  </div>
-</div>
 
-<script>
-const COLORS=['#7F77DD','#1D9E75','#D85A30','#D4537E','#378ADD','#639922','#BA7517','#E24B4A','#534AB7','#0F6E56'];
-const FLOORCOLORS=['#888780','#5f5e5a','#444441','#73726c'];
-const ROOMCOLORS=['#534AB7','#1D9E75','#D85A30','#BA7517','#185FA5','#3B6D11','#D4537E','#0F6E56'];
-
-let people=[], tracks=[], dayW=36, cursorDay=0;
-let fpTool='room', fpElements=[], fpPersonStates={};
-let floorCount=0, roomCount=0, deleteMode=false;
-let fpZoom=1;
-
-// ── MOBILE DETECTION ──
-const isMobile=()=>window.innerWidth<=640;
-
-function applyMobileLayout(){
-  if(!isMobile())return;
-  document.querySelectorAll('.desktop-only').forEach(e=>e.style.display='none');
-  document.querySelectorAll('.mobile-only').forEach(e=>e.style.display='flex');
-  document.getElementById('mobile-close-personas').style.display='flex';
-}
-
-function openMobilePersonas(){
-  document.getElementById('left').classList.add('mobile-open');
-}
-function closeMobilePersonas(){
-  document.getElementById('left').classList.remove('mobile-open');
-}
-
-let mobileTab='cal';
-function switchMobileTab(tab){
-  mobileTab=tab;
-  const tl=document.getElementById('timeline-panel');
-  const sp=document.getElementById('splitter');
-  const fp=document.getElementById('fp-panel');
-  if(tab==='cal'){
-    tl.style.display='flex'; sp.style.display='none'; fp.style.display='none';
-    tl.style.flex='1'; tl.style.height='';
-  } else {
-    tl.style.display='none'; sp.style.display='none'; fp.style.display='flex';
-    fp.style.flex='1'; fp.style.height='';
-  }
-  document.querySelectorAll('.mnav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('mnav-'+tab)?.classList.add('active');
-}
-
-function adjustZoom(delta){
-  const sl=document.getElementById('zoom-slider');
-  const newV=Math.max(20,Math.min(90,dayW+delta));
-  sl.value=newV; setZoom(newV);
-}
-function adjustFPZoom(delta){
-  const sl=document.getElementById('fp-zoom-slider');
-  const newV=Math.max(30,Math.min(200,Math.round(fpZoom*100)+delta));
-  sl.value=newV; setFPZoom(newV);
-}
-
-// ── TOAST ──
-let toastTimer=null;
-function showToast(msg,duration=2000){
-  const t=document.getElementById('lp-toast');
-  t.textContent=msg; t.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>t.classList.remove('show'),duration);
-}
-
-// ── UNDO ──
-const undoStack=[];
-function snapshot(){
-  undoStack.push(JSON.stringify({tracks,fpElements,fpPersonStates}));
-  if(undoStack.length>60)undoStack.shift();
-  updateUndoBtn();
-}
-function undo(){
-  if(!undoStack.length)return;
-  const s=JSON.parse(undoStack.pop());
-  tracks=s.tracks; fpElements=s.fpElements; fpPersonStates=s.fpPersonStates;
-  floorCount=fpElements.filter(e=>e.type==='floor').length;
-  roomCount=fpElements.filter(e=>e.type==='room').length;
-  renderChips(); renderHeader(); renderTracks(); renderFPElements(); updateUndoBtn();
-}
-function updateUndoBtn(){document.getElementById('btn-undo').disabled=!undoStack.length}
-document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();undo()}});
-
-function toggleDeleteMode(){
-  deleteMode=!deleteMode;
-  document.getElementById('btn-delete-range').classList.toggle('active',deleteMode);
-  document.getElementById('delete-mode-bar').classList.toggle('visible',deleteMode);
-  if(deleteMode)showToast('Toca un rango para eliminarlo');
-  renderTracks();
-}
-
-// ── DAYS ──
-const days=[];
-for(let d=23;d<=31;d++) days.push({m:7,d,w:[0,6].includes(new Date(2025,6,d).getDay())});
-for(let d=1;d<=31;d++)  days.push({m:8,d,w:[0,6].includes(new Date(2025,7,d).getDay())});
-const N=days.length;
-const MNAME=['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago'];
-const DNAME=['D','L','M','X','J','V','S'];
-const clickState={};
-
-// ── SPLITTER ──
-function setupSplitter(){
-  const splitter=document.getElementById('splitter');
-  const tl=document.getElementById('timeline-panel');
-  const fp=document.getElementById('fp-panel');
-  const right=document.getElementById('right');
-  let dragging=false, startY=0, startTH=0;
-  const startDrag=(y)=>{dragging=true;startY=y;startTH=tl.offsetHeight;splitter.classList.add('dragging');document.body.style.userSelect='none'};
-  const moveDrag=(y)=>{if(!dragging)return;const dy=y-startY;const total=right.offsetHeight;const splH=splitter.offsetHeight+8;const newTH=Math.max(80,Math.min(total-splH-60,startTH+dy));tl.style.flex='none';tl.style.height=newTH+'px';fp.style.flex='1'};
-  const endDrag=()=>{if(!dragging)return;dragging=false;splitter.classList.remove('dragging');document.body.style.cursor='';document.body.style.userSelect=''};
-  splitter.addEventListener('mousedown',e=>{startDrag(e.clientY);document.body.style.cursor='row-resize'});
-  document.addEventListener('mousemove',e=>moveDrag(e.clientY));
-  document.addEventListener('mouseup',endDrag);
-  splitter.addEventListener('touchstart',e=>{e.preventDefault();startDrag(e.touches[0].clientY)},{passive:false});
-  document.addEventListener('touchmove',e=>{if(dragging){e.preventDefault();moveDrag(e.touches[0].clientY)}},{passive:false});
-  document.addEventListener('touchend',endDrag);
-}
-
-// ── BOOT ──
-document.addEventListener('DOMContentLoaded',()=>{
-  const embeddedEl = document.getElementById('embedded-data');
-  if (embeddedEl && embeddedEl.textContent.trim() !== "") {
-    try {
-      const d = JSON.parse(embeddedEl.textContent);
-      people = d.people || [];
-      tracks = d.tracks || [];
-      fpElements = d.fpElements || [];
-      fpPersonStates = d.fpPersonStates || {};
-      floorCount = d.floorCount || 0;
-      roomCount = d.roomCount || 0;
-      if (d.fpZoom != null) fpZoom = d.fpZoom;
-    } catch (err) {
-      console.warn('Error en la carga automática:', err);
-    }
-  }
-
-  if(fpZoom !== 1){
-    const pct = Math.round(fpZoom * 100);
-    document.getElementById('fp-zoom-slider').value = pct;
-    document.getElementById('fp-zoom-val').textContent = pct + '%';
-    document.getElementById('fp-zoom-val-m').textContent = pct + '%';
-    document.getElementById('fp-canvas').style.transform = `scale(${fpZoom})`;
-  }
-
-  applyMobileLayout();
-
-  renderChips();
-  renderHeader();
-  renderTracks();
-  setupCursor();
-  setCursorDay(0);
-  renderFPElements();
-  
-  document.getElementById('name-input').addEventListener('keydown',e=>{if(e.key==='Enter')addPerson()});
-  document.addEventListener('click',e=>{
-    if(!e.target.closest('.track-bg')&&!e.target.closest('.track-label-cell')){
-      let changed=false;
-      tracks.forEach(t=>{
-        if(clickState[t.id]){clickState[t.id].anchorEl?.remove();clickState[t.id].ghostEl?.remove();delete clickState[t.id];changed=true;}
-      });
-      if(changed)renderHeader();
-    }
-  });
-  updateUndoBtn(); setupFP(); setupSplitter(); updateFPLabel();
-
-  // Mobile: start in cal tab
-  if(isMobile()) switchMobileTab('cal');
-});
-
-// ── PEOPLE ──
-function addPerson(){
-  const inp=document.getElementById('name-input');
-  const name=inp.value.trim(); if(!name)return;
-  snapshot();
-  people.push({id:Date.now(),name,color:COLORS[people.length%COLORS.length]});
-  inp.value=''; renderChips();
-  if(isMobile())showToast(`"${name}" añadido. Arrástralo al calendario.`);
-}
-
-// ── TOUCH DRAG STATE ──
-let touchDragPid=null, touchDragSrc=null, touchDragTid=null, touchDragPi=null, touchDragFpkey=null;
-const ghost=document.getElementById('touch-ghost');
-
-function startTouchDragPerson(pid,name,color,src,tid,pi,fpkey){
-  touchDragPid=String(pid); touchDragSrc=src;
-  touchDragTid=tid; touchDragPi=pi; touchDragFpkey=fpkey;
-  ghost.textContent=name;
-  ghost.style.cssText=`display:block;background:${color};`;
-}
-function moveTouchGhost(x,y){
-  ghost.style.left=x+'px'; ghost.style.top=y+'px';
-}
-function endTouchDrag(){
-  ghost.style.display='none';
-  touchDragPid=null; touchDragSrc=null; touchDragTid=null; touchDragPi=null; touchDragFpkey=null;
-}
-
-function renderChips(){
-  const el=document.getElementById('chips-list'); el.innerHTML='';
-  people.forEach((p,pi)=>{
-    const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:6px';
-    const d=document.createElement('div');
-    d.className='person-chip'; d.style.cssText=`background:${p.color};flex:1`;
-    d.textContent=p.name; d.draggable=true; d.dataset.pid=p.id;
-    // Desktop drag
-    d.addEventListener('dragstart',e=>{e.dataTransfer.setData('pid',p.id);e.dataTransfer.setData('src','sidebar')});
-    // Touch drag from sidebar
-    d.addEventListener('touchstart',e=>{
-      e.preventDefault();
-      startTouchDragPerson(p.id,p.name,p.color,'sidebar',null,null,null);
-      moveTouchGhost(e.touches[0].clientX,e.touches[0].clientY);
-    },{passive:false});
-    d.addEventListener('touchmove',e=>{
-      e.preventDefault();
-      moveTouchGhost(e.touches[0].clientX,e.touches[0].clientY);
-    },{passive:false});
-    d.addEventListener('touchend',e=>{
-      if(!touchDragPid){endTouchDrag();return;}
-      const tx=e.changedTouches[0].clientX, ty=e.changedTouches[0].clientY;
-      // Try dropping on a track-bg
-      const el2=document.elementFromPoint(tx,ty);
-      const bg=el2?.closest('.track-bg');
-      if(bg){
-        const tid=parseInt(bg.dataset.trackid);
-        const t=tracks.find(x=>x.id===tid);
-        if(t){
-          const day=dayFromX(tx,bg);
-          snapshot(); t.persons.push({pid:touchDragPid,day}); renderTracks();
-          showToast('Persona añadida al rango');
+    <script>
+        // --- 1. GESTIÓN DE VISTAS (OCULTAR/MOSTRAR ZONAS) ---
+        function toggleLateral() {
+            document.getElementById('panel-izquierdo').classList.toggle('oculto');
         }
-      }
-      endTouchDrag();
-    },{passive:false});
 
-    // Long-press to delete person
-    let lpTimer=null;
-    d.addEventListener('touchstart',()=>{lpTimer=setTimeout(()=>{
-      if(confirm(`¿Eliminar a "${p.name}"?`)){
-        snapshot();
-        tracks.forEach(t=>{t.persons=t.persons.filter(tp=>tp.pid!=p.id)});
-        Object.keys(fpPersonStates).forEach(k=>{if(k.startsWith(p.id+':'))delete fpPersonStates[k]});
-        people.splice(pi,1); renderChips(); renderTracks(); renderFPChips();
-      }
-    },600)},{passive:true});
-    d.addEventListener('touchend',()=>clearTimeout(lpTimer),{passive:true});
-    d.addEventListener('touchmove',()=>clearTimeout(lpTimer),{passive:true});
-
-    const del=document.createElement('button');
-    del.textContent='✕'; del.title='Eliminar persona';
-    del.style.cssText='background:none;border:none;cursor:pointer;color:var(--tm);font-size:16px;padding:6px 4px;flex-shrink:0;min-width:32px;min-height:36px;display:flex;align-items:center;justify-content:center';
-    del.addEventListener('click',()=>{
-      snapshot();
-      tracks.forEach(t=>{t.persons=t.persons.filter(tp=>tp.pid!=p.id)});
-      Object.keys(fpPersonStates).forEach(k=>{if(k.startsWith(p.id+':'))delete fpPersonStates[k]});
-      people.splice(pi,1); renderChips(); renderTracks(); renderFPChips();
-    });
-    row.appendChild(d); row.appendChild(del); el.appendChild(row);
-  });
-}
-
-// ── CALENDAR HEADER ──
-function renderHeader(){
-  const hdr=document.getElementById('cal-header'); hdr.innerHTML='';
-  hdr.style.width=(N*dayW+110)+'px';
-  const sp=document.createElement('div');
-  sp.style.cssText=`width:110px;flex-shrink:0;border-right:0.5px solid var(--b)`;
-  hdr.appendChild(sp);
-  let lastM=null;
-  days.forEach((day,i)=>{
-    const col=document.createElement('div');
-    col.className='day-col-h'; col.style.width=dayW+'px';
-    if(Object.values(clickState).some(cs=>cs.firstDay===i))col.classList.add('selected-day');
-    if(day.m!==lastM){const s=document.createElement('div');s.className='month-sep';col.appendChild(s);lastM=day.m;}
-    const dn=document.createElement('div');dn.className='day-name';dn.textContent=DNAME[new Date(2025,day.m-1,day.d).getDay()];
-    const num=document.createElement('div');num.className='day-num'+(day.w?' weekend':'');num.textContent=day.d;
-    col.appendChild(dn);col.appendChild(num);
-    col.addEventListener('click',()=>setCursorDay(i));
-    hdr.appendChild(col);
-  });
-}
-function setZoom(v){
-  dayW=v;
-  document.getElementById('zoom-val').textContent=v+'px';
-  document.getElementById('zoom-val-m').textContent=v;
-  document.getElementById('zoom-slider').value=v;
-  renderHeader();renderTracks();updateCursor();
-}
-
-// ── ROW REORDER ──
-let rowDragSrc=null;
-function makeRowDraggable(row,trackId){
-  const handle=row.querySelector('.drag-handle');
-  handle.addEventListener('dragstart',e=>{rowDragSrc=trackId;e.dataTransfer.setData('rowdrag','1');e.dataTransfer.effectAllowed='move';setTimeout(()=>row.style.opacity='0.4',0)});
-  handle.addEventListener('dragend',()=>{row.style.opacity='1'});
-  row.addEventListener('dragover',e=>{if(rowDragSrc!==null){e.preventDefault();row.classList.add('drag-over-row')}});
-  row.addEventListener('dragleave',()=>row.classList.remove('drag-over-row'));
-  row.addEventListener('drop',e=>{
-    row.classList.remove('drag-over-row');
-    if(rowDragSrc===null||e.dataTransfer.getData('pid'))return;
-    const si=tracks.findIndex(t=>t.id===rowDragSrc),di=tracks.findIndex(t=>t.id===trackId);
-    if(si===-1||di===-1||si===di)return;
-    snapshot();const[m]=tracks.splice(si,1);tracks.splice(di,0,m);rowDragSrc=null;renderTracks();
-  });
-}
-
-// ── TRACKS ──
-function addTrack(){
-  snapshot();
-  tracks.push({id:Date.now(),name:`Línea ${tracks.length+1}`,color:COLORS[(tracks.length+3)%COLORS.length],ranges:[],persons:[]});
-  renderTracks();
-}
-
-// Touch range drawing state
-let touchRangeState={}; // keyed by track id
-
-function renderTracks(){
-  const body=document.getElementById('tracks-body'); body.innerHTML='';
-  document.getElementById('cal-track-inner').style.width=(N*dayW+110)+'px';
-
-  tracks.forEach(t=>{
-    const row=document.createElement('div'); row.className='track-row';
-    const lc=document.createElement('div'); lc.className='track-label-cell';
-    const grip=document.createElement('span'); grip.className='drag-handle'; grip.textContent='⠿'; grip.draggable=true; grip.title='Reordenar';
-    const dot=document.createElement('span'); dot.className='tl-dot'; dot.style.background=t.color;
-    const ni=document.createElement('input'); ni.className='track-name-input'; ni.value=t.name; ni.type='text';
-    ni.addEventListener('change',e=>{snapshot();t.name=e.target.value});
-    ni.addEventListener('mousedown',e=>e.stopPropagation());
-    ni.addEventListener('click',e=>e.stopPropagation());
-    const del=document.createElement('button'); del.textContent='✕'; del.title='Eliminar línea';
-    del.style.cssText='background:none;border:none;cursor:pointer;color:var(--tm);font-size:12px;padding:4px;flex-shrink:0;line-height:1;min-width:28px;min-height:28px;display:flex;align-items:center;justify-content:center';
-    del.addEventListener('click',e=>{e.stopPropagation();snapshot();tracks=tracks.filter(x=>x.id!==t.id);renderTracks()});
-    lc.appendChild(grip);lc.appendChild(dot);lc.appendChild(ni);lc.appendChild(del);
-    row.appendChild(lc);
-
-    const bg=document.createElement('div'); bg.className='track-bg'; bg.style.width=(N*dayW)+'px';
-    bg.dataset.trackid=t.id;
-
-    // ranges
-    t.ranges.forEach((rng,ri)=>{
-      const fill=document.createElement('div'); fill.className='range-fill';
-      if(deleteMode)fill.classList.add('deleting');
-      fill.style.background=t.color;
-      fill.style.left=(rng.start*dayW)+'px';
-      fill.style.width=((rng.end-rng.start+1)*dayW)+'px';
-      fill.title=deleteMode?'Toca para eliminar':'Mantén pulsado para eliminar | Bordes: estirar';
-
-      // Delete on tap in delete mode OR long-press
-      fill.addEventListener('click',e=>{
-        if(!deleteMode)return;
-        e.stopPropagation();snapshot();t.ranges.splice(ri,1);renderTracks();
-      });
-      fill.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();snapshot();t.ranges.splice(ri,1);renderTracks()});
-
-      // Long-press to delete range (mobile)
-      let fillLpTimer=null;
-      fill.addEventListener('touchstart',e=>{
-        fillLpTimer=setTimeout(()=>{
-          snapshot();t.ranges.splice(ri,1);renderTracks();
-          showToast('Rango eliminado');
-        },600);
-      },{passive:true});
-      fill.addEventListener('touchend',()=>clearTimeout(fillLpTimer),{passive:true});
-      fill.addEventListener('touchmove',()=>clearTimeout(fillLpTimer),{passive:true});
-
-      // resize handles — mouse
-      const makeResizeHandle=(cls,isLeft)=>{
-        const h=document.createElement('div'); h.className='range-handle '+cls;
-        const onMoveM=ev=>{
-          if(isLeft){
-            const d=Math.max(0,Math.min(rng.end,dayFromX(ev.clientX,bg)));
-            const blk=t.ranges.some((r2,i2)=>i2!==ri&&d<r2.end&&rng.end>r2.start&&d<=r2.end);
-            if(!blk){rng.start=d;fill.style.left=(d*dayW)+'px';fill.style.width=((rng.end-d+1)*dayW)+'px'}
-          } else {
-            const d=Math.max(rng.start,Math.min(N-1,dayFromX(ev.clientX,bg)));
-            const blk=t.ranges.some((r2,i2)=>i2!==ri&&d>r2.start&&rng.start<r2.end&&d>=r2.start);
-            if(!blk){rng.end=d;fill.style.width=((d-rng.start+1)*dayW)+'px'}
-          }
-        };
-        const onUpM=(onMove)=>{document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',()=>{});renderTracks()};
-        h.addEventListener('mousedown',e=>{
-          e.stopPropagation();e.preventDefault();snapshot();let dr=true;
-          const onMove=ev=>{if(!dr)return;onMoveM(ev)};
-          const onUp=()=>{dr=false;document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);renderTracks()};
-          document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
-        });
-        // Touch resize
-        h.addEventListener('touchstart',e=>{e.stopPropagation();e.preventDefault();snapshot();},{passive:false});
-        h.addEventListener('touchmove',e=>{
-          e.stopPropagation();e.preventDefault();
-          const cx=e.touches[0].clientX;
-          if(isLeft){
-            const d=Math.max(0,Math.min(rng.end,dayFromX(cx,bg)));
-            const blk=t.ranges.some((r2,i2)=>i2!==ri&&d<r2.end&&rng.end>r2.start&&d<=r2.end);
-            if(!blk){rng.start=d;fill.style.left=(d*dayW)+'px';fill.style.width=((rng.end-d+1)*dayW)+'px'}
-          } else {
-            const d=Math.max(rng.start,Math.min(N-1,dayFromX(cx,bg)));
-            const blk=t.ranges.some((r2,i2)=>i2!==ri&&d>r2.start&&rng.start<r2.end&&d>=r2.start);
-            if(!blk){rng.end=d;fill.style.width=((d-rng.start+1)*dayW)+'px'}
-          }
-        },{passive:false});
-        h.addEventListener('touchend',()=>renderTracks(),{passive:true});
-        return h;
-      };
-      fill.appendChild(makeResizeHandle('left',true));
-      fill.appendChild(makeResizeHandle('right',false));
-      bg.appendChild(fill);
-    });
-
-    // person chips on track
-    t.persons.forEach((tp,pi)=>{
-      const p=people.find(x=>x.id==tp.pid); if(!p)return;
-      const chip=document.createElement('div'); chip.className='track-chip';
-      chip.style.background=p.color; chip.style.left=(tp.day*dayW)+'px';
-      chip.draggable=true;
-      const rIdx=t.ranges.findIndex(r=>tp.day>=r.start&&tp.day<=r.end);
-      const nameSpan=document.createElement('span'); nameSpan.textContent=p.name;
-      const delBtn=document.createElement('span'); delBtn.className='chip-del'; delBtn.textContent='✕'; delBtn.title='Quitar';
-      delBtn.addEventListener('click',e=>{e.stopPropagation();snapshot();t.persons.splice(pi,1);renderTracks()});
-      delBtn.addEventListener('touchstart',e=>{e.stopPropagation();e.preventDefault();snapshot();t.persons.splice(pi,1);renderTracks();},{passive:false});
-      chip.appendChild(nameSpan);chip.appendChild(delBtn);
-      chip.addEventListener('dragstart',ev=>{
-        ev.dataTransfer.setData('pid',p.id);ev.dataTransfer.setData('src','track');
-        ev.dataTransfer.setData('tid',t.id);ev.dataTransfer.setData('pi',pi);
-        ev.dataTransfer.setData('fpkey',`${p.id}:${t.id}:${rIdx}`);
-      });
-      chip.addEventListener('mousedown',e=>e.stopPropagation());
-      // Touch drag chip from track
-      chip.addEventListener('touchstart',e=>{
-        e.preventDefault();e.stopPropagation();
-        startTouchDragPerson(p.id,p.name,p.color,'track',t.id,pi,`${p.id}:${t.id}:${rIdx}`);
-        moveTouchGhost(e.touches[0].clientX,e.touches[0].clientY);
-      },{passive:false});
-      chip.addEventListener('touchmove',e=>{
-        e.preventDefault();
-        moveTouchGhost(e.touches[0].clientX,e.touches[0].clientY);
-      },{passive:false});
-      chip.addEventListener('touchend',e=>{
-        if(!touchDragPid){endTouchDrag();return;}
-        const tx=e.changedTouches[0].clientX, ty=e.changedTouches[0].clientY;
-        // Check if dropped on fp-viewport
-        const fpVP=document.getElementById('fp-viewport');
-        const fpR=fpVP.getBoundingClientRect();
-        if(tx>=fpR.left&&tx<=fpR.right&&ty>=fpR.top&&ty<=fpR.bottom){
-          const cx=(tx-fpR.left)/fpZoom-20, cy=(ty-fpR.top)/fpZoom-12;
-          snapshot();
-          if(touchDragFpkey){
-            propagateFPPosition(touchDragFpkey,cx,cy);
-            const parts=touchDragFpkey.split(':');
-            const targetTrack=tracks.find(x=>x.id===parseInt(parts[1]));
-            if(targetTrack&&targetTrack.ranges[parseInt(parts[2])]!==undefined)
-              setCursorDay(targetTrack.ranges[parseInt(parts[2])].start);
-            if(isMobile())switchMobileTab('fp');
-          }
-          renderFPChips();
-          showToast('Persona colocada en el plano');
-        } else {
-          // dropped on another track-bg?
-          const el2=document.elementFromPoint(tx,ty);
-          const targetBg=el2?.closest('.track-bg');
-          if(targetBg){
-            const targetTid=parseInt(targetBg.dataset.trackid);
-            const targetT=tracks.find(x=>x.id===targetTid);
-            if(targetT){
-              snapshot();
-              if(touchDragSrc==='track'&&touchDragTid){
-                const origT=tracks.find(x=>x.id===parseInt(touchDragTid));
-                if(origT)origT.persons.splice(touchDragPi,1);
-              }
-              const day=dayFromX(tx,targetBg);
-              targetT.persons.push({pid:touchDragPid,day});
-              renderTracks();
+        function togglePlano() {
+            const plano = document.getElementById('panel-plano');
+            const btnMostrar = document.getElementById('btn-mostrar-plano');
+            if(plano.classList.contains('oculto')) {
+                plano.classList.remove('oculto');
+                btnMostrar.style.display = 'none';
+            } else {
+                plano.classList.add('oculto');
+                btnMostrar.style.display = 'block';
             }
-          }
         }
-        endTouchDrag();
-      },{passive:false});
-      bg.appendChild(chip);
-    });
 
-    // Touch to draw range (two-tap system same as click on desktop)
-    bg.addEventListener('touchstart',e=>{
-      // handled by fills/chips; only act if touch is on empty bg
-      // detect if tapped on a fill
-      const target=e.target;
-      if(target!==bg&&!target.classList.contains('range-ghost'))return;
-      if(deleteMode)return;
-      e.preventDefault();e.stopPropagation();
-    },{passive:false});
+        // --- 2. GENERACIÓN DEL CALENDARIO (23 JULIO A 31 AGOSTO) ---
+        const cabecera = document.getElementById('calendario-cabecera');
+        // El rango abarca Julio (del 23 al 31) y todo Agosto (1 al 31). Total: 40 días.
+        const diasDelRango = [];
+        
+        // Generar array de fechas
+        let fechaInicio = new Date(2026, 6, 23); // Mes 6 es Julio en JS
+        const fechaFin = new Date(2026, 7, 31);   // Mes 7 es Agosto en JS
 
-    // click-to-range (works on desktop AND mobile tap since touchend fires click)
-    bg.addEventListener('mousemove',e=>{
-      const cs=clickState[t.id]; if(!cs)return;
-      const d=dayFromX(e.clientX,bg);const lo=Math.min(cs.firstDay,d),hi=Math.max(cs.firstDay,d);
-      if(!cs.ghostEl){cs.ghostEl=document.createElement('div');cs.ghostEl.className='range-ghost';cs.ghostEl.style.borderColor=t.color;cs.ghostEl.style.background=t.color;bg.appendChild(cs.ghostEl)}
-      const ov=t.ranges.some(r=>lo<=r.end&&hi>=r.start);
-      cs.ghostEl.style.opacity=ov?'0.1':'0.3';
-      cs.ghostEl.style.left=(lo*dayW)+'px';cs.ghostEl.style.width=((hi-lo+1)*dayW)+'px';
-    });
-    bg.addEventListener('click',e=>{
-      if(deleteMode)return;e.stopPropagation();
-      const d=dayFromX(e.clientX,bg);
-      if(!clickState[t.id]){
-        if(t.ranges.some(r=>d>=r.start&&d<=r.end))return;
-        const anchor=document.createElement('div'); anchor.className='anchor-line'; anchor.style.background=t.color;
-        anchor.style.left=(d*dayW+dayW/2-1.5)+'px'; bg.appendChild(anchor);
-        clickState[t.id]={firstDay:d,anchorEl:anchor,ghostEl:null};renderHeader();
-        if(isMobile())showToast('Toca otro día para completar el rango');
-      } else {
-        const lo=Math.min(clickState[t.id].firstDay,d),hi=Math.max(clickState[t.id].firstDay,d);
-        const ov=t.ranges.some(r=>lo<=r.end&&hi>=r.start);
-        clickState[t.id].anchorEl?.remove();clickState[t.id].ghostEl?.remove();delete clickState[t.id];
-        if(!ov){snapshot();t.ranges.push({start:lo,end:hi})}
-        renderHeader();renderTracks();
-      }
-    });
+        while(fechaInicio <= fechaFin) {
+            diasDelRango.push(new Date(fechaInicio));
+            fechaInicio.setDate(fechaInicio.getDate() + 1);
+        }
 
-    bg.addEventListener('dragover',e=>{if(!e.dataTransfer.getData('rowdrag')){e.preventDefault();bg.style.opacity='0.8'}});
-    bg.addEventListener('dragleave',()=>{bg.style.opacity='1'});
-    bg.addEventListener('drop',e=>{
-      bg.style.opacity='1';
-      const pid=e.dataTransfer.getData('pid'); if(!pid)return;
-      e.preventDefault();e.stopPropagation();
-      const src=e.dataTransfer.getData('src');const day=dayFromX(e.clientX,bg);
-      snapshot();
-      if(src==='track'){const tid=parseInt(e.dataTransfer.getData('tid'));const pi=parseInt(e.dataTransfer.getData('pi'));const ot=tracks.find(x=>x.id===tid);if(ot)ot.persons.splice(pi,1)}
-      t.persons.push({pid,day});renderTracks();
-    });
-
-    row.appendChild(bg);makeRowDraggable(row,t.id);body.appendChild(row);
-  });
-  updateCursor();renderFPChips();
-}
-
-function dayFromX(cx,bg){const r=bg.getBoundingClientRect();return Math.max(0,Math.min(N-1,Math.floor((cx-r.left)/dayW)))}
-
-// ── CURSOR ──
-function setupCursor(){
-  const zone=document.getElementById('cursor-handle-zone'); let drag=false;
-  zone.addEventListener('mousedown',e=>{drag=true;e.stopPropagation();e.preventDefault()});
-  document.addEventListener('mousemove',e=>{
-    if(!drag)return;
-    const inner=document.getElementById('cal-track-inner');
-    const wrap=document.getElementById('cal-track-wrap');
-    const rect=inner.getBoundingClientRect();
-    const x=e.clientX-rect.left-110+wrap.scrollLeft;
-    setCursorDay(Math.max(0,Math.min(N-1,Math.floor(x/dayW))));
-  });
-  document.addEventListener('mouseup',()=>{drag=false});
-  // Touch drag on cursor
-  zone.addEventListener('touchstart',e=>{drag=true;e.stopPropagation();e.preventDefault();},{passive:false});
-  zone.addEventListener('touchmove',e=>{
-    if(!drag)return; e.preventDefault();
-    const inner=document.getElementById('cal-track-inner');
-    const wrap=document.getElementById('cal-track-wrap');
-    const rect=inner.getBoundingClientRect();
-    const x=e.touches[0].clientX-rect.left-110+wrap.scrollLeft;
-    setCursorDay(Math.max(0,Math.min(N-1,Math.floor(x/dayW))));
-  },{passive:false});
-  zone.addEventListener('touchend',()=>{drag=false},{passive:true});
-}
-function setCursorDay(d){cursorDay=d;updateCursor();updateFPLabel();renderFPChips()}
-function updateCursor(){
-  const wrap=document.getElementById('cursor-wrap');
-  const line=document.getElementById('cursor-line');
-  const body=document.getElementById('tracks-body');
-  const hdr=document.getElementById('cal-header');
-  const addRow=document.getElementById('add-track-row');
-  const totalH=hdr.offsetHeight+body.offsetHeight+addRow.offsetHeight;
-  wrap.style.display='block';wrap.style.left=(110+cursorDay*dayW+dayW/2)+'px';
-  wrap.style.top='0';wrap.style.height=totalH+'px';wrap.style.pointerEvents='all';
-  line.style.height=totalH+'px';
-}
-function updateFPLabel(){
-  const day=days[cursorDay]; if(!day)return;
-  document.getElementById('fp-date-label').textContent=`📅 ${day.d} ${MNAME[day.m]} 2025`;
-}
-
-// ── FLOOR PLAN ZOOM ──
-function setFPZoom(v){
-  fpZoom=v/100;
-  document.getElementById('fp-zoom-val').textContent=v+'%';
-  document.getElementById('fp-zoom-val-m').textContent=v+'%';
-  document.getElementById('fp-zoom-slider').value=v;
-  document.getElementById('fp-canvas').style.transform=`scale(${fpZoom})`;
-}
-
-function getVisibleSlots(){
-  const slots=[];
-  tracks.forEach(t=>{
-    t.ranges.forEach((rng,ri)=>{
-      if(cursorDay>=rng.start&&cursorDay<=rng.end){
-        t.persons.filter(tp=>tp.day>=rng.start&&tp.day<=rng.end).forEach(tp=>{
-          const fpkey=`${tp.pid}:${t.id}:${ri}`;
-          if(!slots.find(s=>s.fpkey===fpkey))slots.push({pid:String(tp.pid),fpkey,color:people.find(p=>p.id==tp.pid)?.color});
+        // Renderizar cabecera de días
+        diasDelRango.forEach(fecha => {
+            const celda = document.createElement('div');
+            celda.className = 'dia-celda';
+            celda.innerHTML = `<strong>${fecha.getDate()}</strong><br>${fecha.toLocaleString('es-ES', {month: 'short'})}`;
+            cabecera.appendChild(celda);
         });
-      }
-    });
-  });
-  return slots;
-}
 
-// ── FLOOR PLAN ──
-let fpDraw=false,fpGhost=null,fpGs={x:0,y:0};
-function setupFP(){
-  const vp=document.getElementById('fp-viewport');
-  const c=document.getElementById('fp-canvas');
-  c.style.width='2000px'; c.style.height='2000px';
+        // --- 3. ZOOM DEL CALENDARIO ---
+        let nivelZoom = 1.0;
+        function cambiarZoom(valor) {
+            nivelZoom += valor;
+            if(nivelZoom < 0.6) nivelZoom = 0.6;
+            if(nivelZoom > 2.0) nivelZoom = 2.0;
+            cabecera.style.transform = `scaleX(${nivelZoom})`;
+            // Nota: En una implementación de producción avanzada, escalarías el ancho de las celdas en px 
+            // para evitar desalineaciones con las líneas de abajo.
+        }
 
-  // Mouse draw
-  vp.addEventListener('mousedown',e=>{
-    if(fpTool==='select')return;
-    const r=vp.getBoundingClientRect();
-    const cx=(e.clientX-r.left)/fpZoom, cy=(e.clientY-r.top)/fpZoom;
-    fpGs={x:cx,y:cy};
-    fpGhost=document.createElement('div'); fpGhost.className='draw-ghost';
-    fpGhost.style.cssText=`left:${cx}px;top:${cy}px;width:0;height:0`;
-    c.appendChild(fpGhost); fpDraw=true;
-  });
-  document.addEventListener('mousemove',e=>{
-    if(!fpDraw||!fpGhost)return;
-    const r=vp.getBoundingClientRect();
-    const cx=(e.clientX-r.left)/fpZoom, cy=(e.clientY-r.top)/fpZoom;
-    fpGhost.style.left=Math.min(cx,fpGs.x)+'px'; fpGhost.style.top=Math.min(cy,fpGs.y)+'px';
-    fpGhost.style.width=Math.abs(cx-fpGs.x)+'px'; fpGhost.style.height=Math.abs(cy-fpGs.y)+'px';
-  });
-  document.addEventListener('mouseup',e=>{
-    if(!fpDraw||!fpGhost)return; fpDraw=false;
-    const r=vp.getBoundingClientRect();
-    const cx=(e.clientX-r.left)/fpZoom, cy=(e.clientY-r.top)/fpZoom;
-    const lx=Math.min(cx,fpGs.x),ly=Math.min(cy,fpGs.y);
-    const w=Math.abs(cx-fpGs.x),h=Math.abs(cy-fpGs.y);
-    fpGhost.remove(); fpGhost=null; if(w<16||h<16)return;
-    snapshot();
-    if(fpTool==='floor'){floorCount++;fpElements.push({id:Date.now(),type:'floor',x:lx,y:ly,w,h,color:FLOORCOLORS[(floorCount-1)%FLOORCOLORS.length],name:`Piso ${floorCount}`})}
-    else if(fpTool==='room'){roomCount++;fpElements.push({id:Date.now(),type:'room',x:lx,y:ly,w,h,color:ROOMCOLORS[(roomCount-1)%ROOMCOLORS.length],name:`Hab ${roomCount}`})}
-    renderFPElements();
-  });
+        // --- 4. GESTIÓN DE LA COLUMNA DE NOMBRES (ZONA 1) ---
+        function agregarNombre() {
+            const lista = document.getElementById('lista-nombres');
+            const id = Date.now();
+            const li = document.createElement('li');
+            li.className = 'item-nombre';
+            li.draggable = true;
+            li.id = `nombre-${id}`;
+            li.innerHTML = `
+                <input type="text" value="Persona" id="input-${id}">
+                <button onclick="this.parentElement.remove()" style="background:none; border:none; color:red; cursor:pointer;">X</button>
+            `;
+            
+            // Eventos para Drag & Drop nativo en móviles/escritorio
+            li.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', li.id);
+            });
+            
+            lista.appendChild(li);
+        }
 
-  // Touch draw on fp-viewport
-  vp.addEventListener('touchstart',e=>{
-    if(touchDragPid){
-      // Someone is dragging a person chip onto the viewport
-      return;
-    }
-    if(fpTool==='select')return;
-    if(e.touches.length!==1)return;
-    e.preventDefault();
-    const r=vp.getBoundingClientRect();
-    const cx=(e.touches[0].clientX-r.left)/fpZoom, cy=(e.touches[0].clientY-r.top)/fpZoom;
-    // Check if touch started on an existing element
-    const target=document.elementFromPoint(e.touches[0].clientX,e.touches[0].clientY);
-    if(target!==vp&&target!==c&&!target.classList.contains('draw-ghost'))return;
-    fpGs={x:cx,y:cy};
-    fpGhost=document.createElement('div'); fpGhost.className='draw-ghost';
-    fpGhost.style.cssText=`left:${cx}px;top:${cy}px;width:0;height:0`;
-    c.appendChild(fpGhost); fpDraw=true;
-  },{passive:false});
+        // --- 5. GESTIÓN DE LAS LÍNEAS DE TIEMPO (ZONA 2) ---
+        const contenedorLineas = document.getElementById('contenedor-lineas');
 
-  vp.addEventListener('touchmove',e=>{
-    if(!fpDraw||!fpGhost)return;
-    e.preventDefault();
-    const r=vp.getBoundingClientRect();
-    const cx=(e.touches[0].clientX-r.left)/fpZoom, cy=(e.touches[0].clientY-r.top)/fpZoom;
-    fpGhost.style.left=Math.min(cx,fpGs.x)+'px'; fpGhost.style.top=Math.min(cy,fpGs.y)+'px';
-    fpGhost.style.width=Math.abs(cx-fpGs.x)+'px'; fpGhost.style.height=Math.abs(cy-fpGs.y)+'px';
-  },{passive:false});
+        function agregarLinea() {
+            const id = Date.now();
+            const div = document.createElement('div');
+            div.className = 'linea-reserva';
+            div.id = `linea-${id}`;
+            div.innerHTML = `
+                <div class="controles-linea">
+                    <button onclick="moverLinea('${id}', 'subir')">▲</button>
+                    <button onclick="moverLinea('${id}', 'bajar')">▼</button>
+                    <button onclick="document.getElementById('linea-${id}').remove()" style="color:red;">X</button>
+                </div>
+                <input type="text" value="Nueva Línea" style="width:100px; margin-right:10px;">
+                <div class="zona-rangos" style="flex:1; background:#e2e8f0; height:30px; position:relative; border-radius:4px;">
+                     <span style="font-size:10px; color:#777; margin-left:10px; line-height:30px;">[Haz click para trazar rango]</span>
+                </div>
+            `;
+            contenedorLineas.appendChild(div);
+        }
 
-  vp.addEventListener('touchend',e=>{
-    if(!fpDraw||!fpGhost)return;
-    fpDraw=false;
-    const r=vp.getBoundingClientRect();
-    const lastT=e.changedTouches[0];
-    const cx=(lastT.clientX-r.left)/fpZoom, cy=(lastT.clientY-r.top)/fpZoom;
-    const lx=Math.min(cx,fpGs.x),ly=Math.min(cy,fpGs.y);
-    const w=Math.abs(cx-fpGs.x),h=Math.abs(cy-fpGs.y);
-    fpGhost.remove(); fpGhost=null;
-    if(w<20||h<20){showToast('Arrastra más para dibujar un elemento');return;}
-    snapshot();
-    if(fpTool==='floor'){floorCount++;fpElements.push({id:Date.now(),type:'floor',x:lx,y:ly,w,h,color:FLOORCOLORS[(floorCount-1)%FLOORCOLORS.length],name:`Piso ${floorCount}`})}
-    else if(fpTool==='room'){roomCount++;fpElements.push({id:Date.now(),type:'room',x:lx,y:ly,w,h,color:ROOMCOLORS[(roomCount-1)%ROOMCOLORS.length],name:`Hab ${roomCount}`})}
-    renderFPElements();
-  },{passive:false});
+        function moverLinea(id, direccion) {
+            const el = document.getElementById(`linea-${id}`);
+            if (direccion === 'subir' && el.previousElementSibling) {
+                contenedorLineas.insertBefore(el, el.previousElementSibling);
+            } else if (direccion === 'bajar' && el.nextElementSibling) {
+                contenedorLineas.insertBefore(el.nextElementSibling, el);
+            }
+        }
 
-  // Person drop (desktop D&D)
-  vp.addEventListener('dragover',e=>{e.preventDefault();c.classList.add('drag-over-fp')});
-  vp.addEventListener('dragleave',()=>c.classList.remove('drag-over-fp'));
-  vp.addEventListener('drop',e=>{
-    e.preventDefault(); c.classList.remove('drag-over-fp');
-    const pid=e.dataTransfer.getData('pid'); if(!pid)return;
-    const src=e.dataTransfer.getData('src');
-    const r=vp.getBoundingClientRect();
-    const cx=(e.clientX-r.left)/fpZoom-20, cy=(e.clientY-r.top)/fpZoom-12;
-    snapshot();
-    if(src==='sidebar'){
-      getVisibleSlots().filter(s=>String(s.pid)===String(pid)).forEach(s=>{
-        propagateFPPosition(s.fpkey,cx,cy);
-      });
-    } else {
-      const fpkey=e.dataTransfer.getData('fpkey');
-      if(fpkey) {
-        propagateFPPosition(fpkey,cx,cy);
-        const parts = fpkey.split(':');
-        const tId = parseInt(parts[1]);
-        const rIdx = parseInt(parts[2]);
-        const targetTrack = tracks.find(x => x.id === tId);
-        if (targetTrack && targetTrack.ranges[rIdx] !== undefined)
-          setCursorDay(targetTrack.ranges[rIdx].start);
-      }
-    }
-    renderFPChips();
-  });
-}
+        // --- 6. CONTROL DESLIZANTE DE LA LÍNEA AZUL ---
+        const controlLinea = document.getElementById('control-linea');
+        const lineaAzul = document.getElementById('linea-azul');
+        let arrastrandoLinea = false;
 
-function propagateFPPosition(fpkey,x,y){fpPersonStates[fpkey]={x,y}}
+        controlLinea.addEventListener('mousedown', () => arrastrandoLinea = true);
+        window.addEventListener('mouseup', () => arrastrandoLinea = false);
+        window.addEventListener('mousemove', (e) => {
+            if (!arrastrandoLinea) return;
+            // Calcular posición relativa respecto al área de calendario
+            const contenedorCal = document.querySelector('.seccion-calendario');
+            const rect = contenedorCal.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            if(x < 90) x = 90; // Límite izquierdo aproximado de los controles
+            if(x > rect.width) x = rect.width;
+            
+            lineaAzul.style.left = `${x}px`;
+            
+            // Aquí se calcularía matemáticamente a qué día corresponde 'x' 
+            // basándose en el zoom y ancho de las celdas para actualizar el texto.
+            controlLinea.innerText = "📅 Día X";
+        });
 
-function renderFPElements(){
-  const c=document.getElementById('fp-canvas');
-  c.querySelectorAll('.floor-rect,.room-rect').forEach(e=>e.remove());
-  fpElements.filter(e=>e.type==='floor').forEach(el=>makeFPEl(el,c));
-  fpElements.filter(e=>e.type==='room').forEach(el=>makeFPEl(el,c));
-  renderFPChips();
-}
-function makeFPEl(el,c){
-  const div=document.createElement('div');
-  div.className=el.type==='floor'?'floor-rect':'room-rect';
-  div.style.cssText=`left:${el.x}px;top:${el.y}px;width:${el.w}px;height:${el.h}px;border-color:${el.color}`;
-  const lbl=document.createElement('input');
-  lbl.className='el-label'; lbl.type='text'; lbl.value=el.name; lbl.style.color=el.color;
-  lbl.addEventListener('change',e=>{snapshot();el.name=e.target.value});
-  lbl.addEventListener('mousedown',e=>e.stopPropagation());
-  lbl.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
-  div.appendChild(lbl);
-  div.addEventListener('contextmenu',e=>{e.preventDefault();snapshot();fpElements=fpElements.filter(x=>x.id!==el.id);renderFPElements()});
-  div.title='Mantén pulsado para eliminar | Esquinas: redimensionar';
-  // Long-press to delete element (mobile)
-  let divLpTimer=null;
-  div.addEventListener('touchstart',e=>{
-    if(e.target===lbl)return;
-    divLpTimer=setTimeout(()=>{
-      snapshot();fpElements=fpElements.filter(x=>x.id!==el.id);renderFPElements();
-      showToast('Elemento eliminado');
-    },700);
-  },{passive:true});
-  div.addEventListener('touchend',()=>clearTimeout(divLpTimer),{passive:true});
-  div.addEventListener('touchmove',()=>clearTimeout(divLpTimer),{passive:true});
+        // Soporte Touch para móviles
+        controlLinea.addEventListener('touchstart', () => arrastrandoLinea = true);
+        window.addEventListener('touchend', () => arrastrandoLinea = false);
+        window.addEventListener('touchmove', (e) => {
+            if (!arrastrandoLinea) return;
+            const contenedorCal = document.querySelector('.seccion-calendario');
+            const rect = contenedorCal.getBoundingClientRect();
+            let touchX = e.touches[0].clientX - rect.left;
+            if(touchX < 90) touchX = 90;
+            lineaAzul.style.left = `${touchX}px`;
+        });
 
-  [['tl'],['tr'],['bl'],['br']].forEach(([cls])=>{
-    const corner=document.createElement('div'); corner.className='fp-corner '+cls;
-    const doResize=(clientX,clientY,startX,startY,ox,oy,ow,oh)=>{
-      const dx=clientX/fpZoom-startX, dy=clientY/fpZoom-startY;
-      if(cls==='br'){el.w=Math.max(30,ow+dx);el.h=Math.max(20,oh+dy)}
-      else if(cls==='bl'){const nw=Math.max(30,ow-dx);el.x=ox+ow-nw;el.w=nw;el.h=Math.max(20,oh+dy)}
-      else if(cls==='tr'){el.w=Math.max(30,ow+dx);const nh=Math.max(20,oh-dy);el.y=oy+oh-nh;el.h=nh}
-      else{const nw=Math.max(30,ow-dx);el.x=ox+ow-nw;el.w=nw;const nh=Math.max(20,oh-dy);el.y=oy+oh-nh;el.h=nh}
-      div.style.left=el.x+'px';div.style.top=el.y+'px';div.style.width=el.w+'px';div.style.height=el.h+'px';
-    };
-    corner.addEventListener('mousedown',e=>{
-      e.stopPropagation();e.preventDefault();snapshot();
-      const startX=e.clientX/fpZoom,startY=e.clientY/fpZoom;
-      const ox=el.x,oy=el.y,ow=el.w,oh=el.h;
-      const onMove=ev=>doResize(ev.clientX,ev.clientY,startX,startY,ox,oy,ow,oh);
-      const onUp=()=>{document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp)};
-      document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
-    });
-    corner.addEventListener('touchstart',e=>{
-      e.stopPropagation();e.preventDefault();snapshot();
-      const startX=e.touches[0].clientX/fpZoom,startY=e.touches[0].clientY/fpZoom;
-      const ox=el.x,oy=el.y,ow=el.w,oh=el.h;
-      corner.ontouchmove=ev=>{ev.preventDefault();doResize(ev.touches[0].clientX,ev.touches[0].clientY,startX,startY,ox,oy,ow,oh)};
-      corner.ontouchend=()=>{corner.ontouchmove=null;corner.ontouchend=null};
-    },{passive:false});
-    div.appendChild(corner);
-  });
-  c.appendChild(div);
-}
-
-function renderFPChips(){
-  const c=document.getElementById('fp-canvas');
-  c.querySelectorAll('.fp-chip').forEach(e=>e.remove());
-  const slots=getVisibleSlots();
-  slots.forEach(({pid,fpkey,color})=>{
-    const p=people.find(x=>String(x.id)===String(pid)); if(!p)return;
-    const pos=fpPersonStates[fpkey]; if(!pos)return;
-    const d=document.createElement('div'); d.className='fp-chip';
-    d.style.cssText=`left:${pos.x}px;top:${pos.y}px;background:${p.color}`;
-    const parts=fpkey.split(':');
-    const t=tracks.find(x=>String(x.id)===parts[1]);
-    const rng=t?.ranges[parseInt(parts[2])];
-    const rLabel=rng?` [${days[rng.start]?.d}/${MNAME[days[rng.start]?.m]}–${days[rng.end]?.d}/${MNAME[days[rng.end]?.m]}]`:'';
-    d.textContent=p.name; d.title=`${p.name}${rLabel}`;
-    makeDraggableFP(d,fpkey);
-    d.addEventListener('contextmenu',e=>{
-      e.preventDefault();snapshot();delete fpPersonStates[fpkey];renderFPChips();
-    });
-    // Long-press to remove from floor plan (mobile)
-    let fpChipLpTimer=null;
-    d.addEventListener('touchstart',e=>{
-      fpChipLpTimer=setTimeout(()=>{
-        snapshot();delete fpPersonStates[fpkey];renderFPChips();
-        showToast('Persona quitada del plano');
-      },600);
-    },{passive:true});
-    d.addEventListener('touchend',()=>clearTimeout(fpChipLpTimer),{passive:true});
-    d.addEventListener('touchmove',()=>clearTimeout(fpChipLpTimer),{passive:true});
-    c.appendChild(d);
-  });
-}
-
-function makeDraggableFP(el,fpkey){
-  let drag=false,ox=0,oy=0;
-  el.addEventListener('mousedown',e=>{
-    drag=true;const r=el.getBoundingClientRect();
-    ox=(e.clientX-r.left)/fpZoom;oy=(e.clientY-r.top)/fpZoom;e.stopPropagation();
-  });
-  document.addEventListener('mousemove',e=>{
-    if(!drag)return;
-    const vp=document.getElementById('fp-viewport').getBoundingClientRect();
-    const nx=Math.max(0,(e.clientX-vp.left)/fpZoom-ox);
-    const ny=Math.max(0,(e.clientY-vp.top)/fpZoom-oy);
-    el.style.left=nx+'px';el.style.top=ny+'px';
-    fpPersonStates[fpkey]={x:nx,y:ny};
-  });
-  document.addEventListener('mouseup',()=>{drag=false});
-  // Touch drag chip inside floor plan
-  el.addEventListener('touchstart',e=>{
-    e.stopPropagation();e.preventDefault();
-    drag=true;
-    const r=el.getBoundingClientRect();
-    ox=(e.touches[0].clientX-r.left)/fpZoom;oy=(e.touches[0].clientY-r.top)/fpZoom;
-  },{passive:false});
-  el.addEventListener('touchmove',e=>{
-    if(!drag)return; e.preventDefault();e.stopPropagation();
-    const vp=document.getElementById('fp-viewport').getBoundingClientRect();
-    const nx=Math.max(0,(e.touches[0].clientX-vp.left)/fpZoom-ox);
-    const ny=Math.max(0,(e.touches[0].clientY-vp.top)/fpZoom-oy);
-    el.style.left=nx+'px';el.style.top=ny+'px';
-    fpPersonStates[fpkey]={x:nx,y:ny};
-  },{passive:false});
-  el.addEventListener('touchend',()=>{drag=false},{passive:true});
-}
-
-function setTool(t){
-  fpTool=t;
-  ['floor','room'].forEach(x=>{const b=document.getElementById('tool-'+x);if(b)b.classList.toggle('active',x===t)});
-  document.getElementById('fp-viewport').style.cursor='crosshair';
-}
-function clearFloor(){
-  if(!confirm('¿Borrar todo el plano?'))return;
-  snapshot();fpElements=[];floorCount=0;roomCount=0;fpPersonStates={};
-  document.getElementById('fp-canvas').innerHTML='';
-}
-
-function saveFile(){
-  const data = { people, tracks, fpElements, fpPersonStates, floorCount, roomCount, fpZoom };
-  const json = JSON.stringify(data);
-  let edEl = document.getElementById('embedded-data');
-  if (!edEl) {
-    edEl = document.createElement('script');
-    edEl.id = 'embedded-data';
-    edEl.type = 'application/json';
-    document.body.appendChild(edEl);
-  }
-  edEl.textContent = json;
-  const htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
-  const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'planificador_vacaciones.html';
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-function loadFile(e){
-  const file=e.target.files[0]; if(!file)return;
-  const reader=new FileReader();
-  reader.onload=ev=>{
-    try{
-      const text=ev.target.result;
-      let d;
-      if(file.name.endsWith('.html')||file.name.endsWith('.htm')){
-        const CS='<'+'/script>';
-        const EDopen='<'+'script id="embedded-data" type="application/json">';
-        const pat=new RegExp(EDopen.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([\\s\\S]*?)'+CS.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
-        const match=text.match(pat);
-        if(!match)throw new Error('No se encontraron datos en el HTML');
-        d=JSON.parse(match[1]);
-      } else { d=JSON.parse(text); }
-      snapshot();
-      people=d.people||[];tracks=d.tracks||[];fpElements=d.fpElements||[];
-      fpPersonStates=d.fpPersonStates||{};floorCount=d.floorCount||0;roomCount=d.roomCount||0;
-      if(d.fpZoom!=null){
-        fpZoom=d.fpZoom;const pct=Math.round(fpZoom*100);
-        document.getElementById('fp-zoom-slider').value=pct;
-        document.getElementById('fp-zoom-val').textContent=pct+'%';
-        document.getElementById('fp-zoom-val-m').textContent=pct+'%';
-        document.getElementById('fp-canvas').style.transform='scale('+fpZoom+')';
-      }
-      renderChips();renderHeader();renderTracks();renderFPElements();updateFPLabel();
-    }catch(err){alert('Error al cargar: '+err.message);}
-  };
-  reader.readAsText(file);e.target.value='';
-}
-</script>
-
-<script id="embedded-data" type="application/json">{"people":[{"id":1782578452187,"name":"mama","color":"#7F77DD"},{"id":1782578453540,"name":"papa","color":"#1D9E75"},{"id":1782596050832,"name":"Miguel","color":"#D85A30"},{"id":1782596053020,"name":"Marta","color":"#D4537E"}],"tracks":[{"id":1782578454828,"name":"Mama & papa","color":"#D4537E","ranges":[{"start":1,"end":26}],"persons":[{"pid":"1782578452187","day":3},{"pid":"1782578453540","day":7}]},{"id":1782596055576,"name":"Miguel & Familia","color":"#378ADD","ranges":[{"start":1,"end":8}],"persons":[{"pid":"1782596050832","day":4},{"pid":"1782596053020","day":2}]}],"fpElements":[{"id":1782578467818,"type":"floor","x":52.5,"y":47.5,"w":604,"h":290,"color":"#888780","name":"Piso 1"},{"id":1782578470437,"type":"room","x":347.5,"y":78.5,"w":166,"h":138,"color":"#534AB7","name":"Hab 1"},{"id":1782596096340,"type":"room","x":82.5,"y":75.5,"w":185,"h":139,"color":"#1D9E75","name":"Hab 2"}],"fpPersonStates":{"1782578452187:1782578454828:0":{"x":402,"y":146},"1782578453540:1782578454828:0":{"x":384,"y":179},"1782596053020:1782596055576:0":{"x":108.5,"y":118.5},"1782596050832:1782596055576:0":{"x":180.5,"y":138.5}},"floorCount":1,"roomCount":2,"fpZoom":1}</script></body></html>
+        // --- 7. APUNTES PARA ZONA PLANO (HERRAMIENTAS DE DIBUJO) ---
+        let herramientaActual = null;
+        function cambiarHerramienta(tipo) {
+            herramientaActual = tipo;
+            alert(`Herramienta seleccionada: ${tipo.toUpperCase()}. Haz clic y arrastra en el lienzo para dibujar (Lógica de vértices modificables a implementar vía HTML5 Canvas).`);
+        }
+    </script>
+</body>
+</html>
