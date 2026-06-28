@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Planning Horizontal Móvil Avanzado</title>
+    <title>Planning Horizontal Flexible Profesional</title>
     <style>
         * {
             box-sizing: border-box;
@@ -28,7 +28,7 @@
             height: 100vh;
             background: #111;
             color: white;
-            z-index: 9999;
+            z-index: 999999;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -48,22 +48,36 @@
             position: relative;
         }
 
-        /* Lateral de Nombres */
+        /* Lateral de Nombres Redimensionable */
         .lateral-nombres {
             width: 230px;
+            min-width: 0;
+            max-width: 50vw;
             height: 100%;
             background: #fff;
-            border-right: 2px solid #ccc;
-            transition: width 0.3s ease, transform 0.3s ease;
+            border-right: 3px solid #ccc;
             display: flex;
             flex-direction: column;
             overflow: hidden;
             z-index: 40;
+            position: relative;
         }
         .lateral-nombres.oculto {
-            width: 0;
+            width: 0 !important;
             border-right: none;
-            transform: translateX(-230px);
+        }
+        .resizer-horizontal {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 6px;
+            height: 100%;
+            cursor: ew-resize;
+            z-index: 50;
+            background: transparent;
+        }
+        .lateral-nombres:not(.oculto) .resizer-horizontal:hover {
+            background: rgba(0,0,0,0.1);
         }
 
         .area-principal {
@@ -75,7 +89,7 @@
             position: relative;
         }
 
-        /* Barra de Herramientas Superior Fija (Garantiza Visibilidad) */
+        /* Barra de Herramientas Superior */
         .barra-herramientas-superior {
             background: #222;
             color: white;
@@ -83,7 +97,8 @@
             display: flex;
             gap: 10px;
             align-items: center;
-            z-index: 45;
+            z-index: 50;
+            height: 40px;
         }
         .btn-accion-top {
             padding: 5px 10px;
@@ -97,7 +112,7 @@
         }
         .btn-accion-top.rojo { background: #dc3545; }
 
-        /* Zona 2: Calendario y Estructura Modular */
+        /* Zona 2: Calendario */
         .seccion-calendario {
             flex: 1;
             display: flex;
@@ -116,7 +131,6 @@
             width: 100%;
         }
 
-        /* Columna Fija Lateral */
         .columna-fija-mandos {
             width: 140px;
             min-width: 140px;
@@ -140,50 +154,44 @@
             font-size: 10px;
         }
 
-        /* Caja de Scroll Horizontal Modular */
         .scroll-horizontal-timeline {
             flex: 1;
             overflow-x: auto;
             overflow-y: hidden;
             position: relative;
-            touch-action: pan-x; /* Permite desplazamiento fluido por arrastre con un dedo */
-            overscroll-behavior-x: contain; /* Bloquea el efecto rebote/elasticidad nativo */
+            touch-action: pan-x;
+            overscroll-behavior-x: contain;
         }
-        
-        /* Ocultar barras de scroll visuales para optimizar espacio */
-        .scroll-horizontal-timeline::-webkit-scrollbar {
-            display: none;
-        }
+        .scroll-horizontal-timeline::-webkit-scrollbar { display: none; }
 
         .wrapper-timeline {
             position: relative;
             width: max-content;
         }
 
-        /* LÍNEA AZUL INTER-CAPAS (Atraviesa todo el layout) */
+        /* LÍNEA AZUL ABSOLUTA (AISLADA EN CAPA CELESTIAL SUPERIOR) */
         .linea-temporal-azul {
             position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0px;
+            top: 40px; /* Alineada tras la barra superior */
             width: 3px;
             background: #0056b3;
-            z-index: 30; /* Elevado para cruzar sobre las pistas de rangos */
-            pointer-events: none;
+            z-index: 99999; /* Por encima de absolutamente todo */
+            pointer-events: none; /* Permite clicks/scrolls nativos debajo */
         }
         .control-linea-azul {
             position: absolute;
-            top: 32px;
+            top: 25px;
             transform: translateX(-50%);
             background: #0056b3;
             color: white;
-            padding: 2px 6px;
-            border-radius: 10px;
+            padding: 3px 8px;
+            border-radius: 12px;
             font-size: 11px;
+            font-weight: bold;
             cursor: ew-resize;
-            pointer-events: auto;
+            pointer-events: auto; /* Captura el arrastre táctil */
             white-space: nowrap;
-            z-index: 31;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
         }
 
         .contenedor-dias {
@@ -193,12 +201,12 @@
             background: #eee;
         }
         .dia-celda {
-            min-width: 60px;
-            width: 60px;
+            min-width: 70px;
+            width: 70px;
             text-align: center;
             border-right: 1px solid #ccc;
             padding: 4px 0;
-            font-size: 11px;
+            font-size: 10px;
             background: #eee;
         }
 
@@ -208,6 +216,17 @@
             position: relative;
             border-radius: 4px;
             width: 100%;
+        }
+
+        .rango-creado {
+            position: absolute;
+            height: 100%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 10px;
+            border-radius: 4px;
         }
 
         .contenedor-nombres-rango {
@@ -233,19 +252,31 @@
             border: 1px solid #aaa;
         }
 
-        /* Zona 3: El Plano */
+        /* Zona 3: El Plano Redimensionable Verticalmente */
         .seccion-plano {
-            height: 38%;
+            height: 220px;
+            min-height: 60px;
+            max-height: 70vh;
             background: #e9ecef;
-            border-top: 3px solid #bbb;
+            border-top: 4px solid #999;
             position: relative;
-            transition: height 0.3s ease;
             display: flex;
             flex-direction: column;
-            z-index: 10;
+            z-index: 45;
         }
-        .seccion-plano.oculto { height: 0; border-top: none; overflow: hidden; }
+        .seccion-plano.oculto { height: 0 !important; min-height: 0; border-top: none; overflow: hidden; }
         
+        .resizer-vertical {
+            position: absolute;
+            top: -4px;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            cursor: ns-resize;
+            z-index: 50;
+            background: transparent;
+        }
+
         .cabecera-plano {
             background: #ddd;
             padding: 4px 10px;
@@ -253,6 +284,7 @@
             justify-content: space-between;
             align-items: center;
             font-size: 12px;
+            height: 30px;
         }
         .canvas-plano {
             flex: 1;
@@ -263,33 +295,54 @@
             overflow: hidden;
         }
 
+        /* Objetos del plano y arquitectura multi-nodo */
         .objeto-plano {
             position: absolute;
             border: 2px solid;
+            box-sizing: border-box;
+            padding: 8px;
+        }
+        .objeto-plano.tipo-piso { background: rgba(0, 123, 255, 0.12); border-color: #007bff; z-index: 1; }
+        .objeto-plano.tipo-habitacion { background: rgba(23, 162, 184, 0.2); border-color: #17a2b8; z-index: 2; }
+        
+        .header-objeto {
             display: flex;
-            flex-direction: column;
-            padding: 5px;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+        .header-objeto input {
+            background: transparent;
+            border: none;
+            font-weight: bold;
+            width: 75%;
+            color: #222;
+        }
+
+        /* Redimensionadores Dinámicos de Perímetro (8 Puntos) */
+        .nodo-resize {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #fff;
+            border: 1px solid #333;
             box-sizing: border-box;
         }
-        .objeto-plano.tipo-piso { background: rgba(0, 123, 255, 0.15); border-color: #007bff; z-index: 1; }
-        .objeto-plano.tipo-habitacion { background: rgba(23, 162, 184, 0.25); border-color: #17a2b8; z-index: 2; }
-        
-        .vertice-resize {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background: #333;
-            right: -5px;
-            bottom: -5px;
-            cursor: se-resize;
-            z-index: 10;
-        }
+        .nodo-n  { top: -4px; left: calc(50% - 4px); cursor: ns-resize; }
+        .nodo-s  { bottom: -4px; left: calc(50% - 4px); cursor: ns-resize; }
+        .nodo-e  { right: -4px; top: calc(50% - 4px); cursor: ew-resize; }
+        .nodo-w  { left: -4px; top: calc(50% - 4px); cursor: ew-resize; }
+        .nodo-nw { top: -4px; left: -4px; cursor: nwse-resize; }
+        .nodo-ne { top: -4px; right: -4px; cursor: nesw-resize; }
+        .nodo-sw { bottom: -4px; left: -4px; cursor: nesw-resize; }
+        .nodo-se { bottom: -4px; right: -4px; cursor: nwse-resize; }
 
         .header-seccion { padding: 10px; background: #f8f9fa; border-bottom: 1px solid #ddd; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .lista-items { list-style: none; overflow-y: auto; flex: 1; padding: 10px; }
         .item-nombre { display: flex; justify-content: space-between; background: #e2e8f0; padding: 6px; margin-bottom: 5px; border-radius: 4px; cursor: grab; font-size: 13px; }
         .item-nombre input { border: none; background: transparent; font-weight: bold; width: 75%; }
-        .tag-plano-dinamico { background: #ffc107; color: #000; padding: 1px 3px; border-radius: 2px; font-size: 9px; font-weight: bold; }
+        .tag-plano-dinamico { background: #ffc107; color: #000; padding: 1px 3px; border-radius: 2px; font-size: 9px; font-weight: bold; margin-right: 2px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -299,6 +352,10 @@
         <p>Esta aplicación está diseñada para usarse exclusivamente en modo horizontal (Landscape).</p>
     </div>
 
+    <div class="linea-temporal-azul" id="linea-azul">
+        <div class="control-linea-azul" id="control-linea">◀ 23 Jul ▶</div>
+    </div>
+
     <div class="contenedor-app">
         <div class="lateral-nombres oculto" id="panel-izquierdo">
             <div class="header-seccion">
@@ -306,6 +363,7 @@
                 <button onclick="agregarNombre()">+</button>
             </div>
             <ul class="lista-items" id="lista-nombres"></ul>
+            <div class="resizer-horizontal" id="resizer-lateral"></div>
         </div>
 
         <div class="area-principal">
@@ -315,7 +373,7 @@
                 <button class="btn-accion-top rojo" id="btn-toggle-plano" onclick="togglePanel('plano')">Ocultar Plano</button>
                 <div style="border-left: 1px solid #555; height: 18px; margin: 0 5px;"></div>
                 <button class="btn-accion-top" onclick="agregarLinea()">+ Añadir Línea</button>
-                <span style="font-size: 11px; color: #ccc;">Zoom: Pellizca con 2 dedos en cualquier parte del calendario</span>
+                <span style="font-size: 11px; color: #ccc;">Línea azul flotante e inmune superior activa.</span>
             </div>
 
             <div class="seccion-calendario" id="seccion-calendario">
@@ -324,9 +382,6 @@
                     <div class="columna-fija-mandos" style="background:#ccdad1; font-weight:bold; justify-content:center; font-size:11px;">EJE DIAS</div>
                     <div class="scroll-horizontal-timeline" id="scroll-cabecera" onscroll="sincronizarScrolls(this)">
                         <div class="wrapper-timeline" id="wrapper-cabecera">
-                            <div class="linea-temporal-azul" id="linea-azul">
-                                <div class="control-linea-azul" id="control-linea">◀ 23 Jul ▶</div>
-                            </div>
                             <div class="contenedor-dias" id="calendario-cabecera"></div>
                         </div>
                     </div>
@@ -336,8 +391,9 @@
             </div>
 
             <div class="seccion-plano" id="panel-plano">
+                <div class="resizer-vertical" id="resizer-plano"></div>
                 <div class="cabecera-plano">
-                    <strong>Plano de Asignación Espacial</strong>
+                    <strong>Plano de Asignación Espacial (Redimensión desde cualquier vértice)</strong>
                     <div>
                         <button id="btn-herramienta-piso" onclick="setHerramienta('piso')" style="padding:2px 6px; font-size:11px;">+ Modo Piso</button>
                         <button id="btn-herramienta-hab" onclick="setHerramienta('habitacion')" style="padding:2px 6px; font-size:11px;">+ Modo Habitación</button>
@@ -352,7 +408,9 @@
     </div>
 
     <script>
-        // --- 1. CONFIGURACIÓN DE VISTAS ELECTRÓNICAS ---
+        const paletaColores = ['#28a745', '#e67e22', '#9b59b6', '#3498db', '#e74c3c', '#16a085', '#2c3e50', '#f1c40f', '#d35400', '#7f8c8d'];
+        let colorIndiceGlobal = 0;
+
         function togglePanel(tipo) {
             if(tipo === 'nombres') {
                 const p = document.getElementById('panel-izquierdo');
@@ -366,10 +424,10 @@
                 btn.innerText = esOculto ? "Mostrar Plano" : "Ocultar Plano";
                 btn.className = esOculto ? "btn-accion-top" : "btn-accion-top rojo";
             }
-            setTimeout(ajustarAltoLineaVerticalAzul, 200);
+            setTimeout(() => { ajustarAltoLineaVerticalAzul(); posicionarLineaAzulEnPantalla(); }, 200);
         }
 
-        // --- 2. GENERACIÓN DE FECHAS LIMITADAS ---
+        // --- GENERACIÓN DE FECHAS ---
         const cabecera = document.getElementById('calendario-cabecera');
         const diasDelRango = [];
         let fInicio = new Date(2026, 6, 23);
@@ -386,13 +444,10 @@
             cabecera.appendChild(c);
         });
 
-        // Vinculación estricta de Scroll Horizontal (Acota y Sincroniza)
         let scrollBloqueado = false;
         function sincronizarScrolls(origen) {
             if (scrollBloqueado) return;
             scrollBloqueado = true;
-            
-            // Forzar límites de desbordamiento duro
             if (origen.scrollLeft < 0) origen.scrollLeft = 0;
             const maxScroll = origen.scrollWidth - origen.clientWidth;
             if (origen.scrollLeft > maxScroll) origen.scrollLeft = maxScroll;
@@ -402,39 +457,34 @@
                 if (c !== origen) c.scrollLeft = origen.scrollLeft;
             });
             scrollBloqueado = false;
+            posicionarLineaAzulEnPantalla();
         }
 
-        // --- 3. PINCH-TO-ZOOM GLOBAL (Área Completa del Calendario) ---
+        // --- PINCH-TO-ZOOM ---
         let anchoCeldaActual = 70;
         let toqueDistanciaInicial = 0;
         const seccionCalendario = document.getElementById('seccion-calendario');
 
         seccionCalendario.addEventListener('touchstart', (e) => {
             if (e.touches.length === 2) {
-                toqueDistanciaInicial = Math.hypot(
-                    e.touches[0].clientX - e.touches[1].clientX,
-                    e.touches[0].clientY - e.touches[1].clientY
-                );
+                toqueDistanciaInicial = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
             }
         }, { passive: true });
 
         seccionCalendario.addEventListener('touchmove', (e) => {
             if (e.touches.length === 2 && toqueDistanciaInicial > 0) {
-                e.preventDefault(); // Detener comportamientos elásticos nativos del navegador
-                const dist = Math.hypot(
-                    e.touches[0].clientX - e.touches[1].clientX,
-                    e.touches[0].clientY - e.touches[1].clientY
-                );
+                e.preventDefault();
+                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
                 const delta = dist - toqueDistanciaInicial;
-                if(Math.abs(delta) > 4) {
-                    cambiarZoom(delta > 0 ? 4 : -4);
+                if(Math.abs(delta) > 3) {
+                    cambiarZoom(delta > 0 ? 3 : -3);
                     toqueDistanciaInicial = dist; 
                 }
             }
         }, { passive: false });
 
         function cambiarZoom(v) {
-            anchoCeldaActual = Math.max(50, Math.min(160, anchoCeldaActual + v));
+            anchoCeldaActual = Math.max(18, Math.min(160, anchoCeldaActual + v));
             document.querySelectorAll('.dia-celda').forEach(c => {
                 c.style.minWidth = `${anchoCeldaActual}px`;
                 c.style.width = `${anchoCeldaActual}px`;
@@ -443,18 +493,17 @@
             document.querySelectorAll('.wrapper-timeline').forEach(w => {
                 w.style.width = `${nuevoAnchoTotal}px`;
             });
-            actualizarPosicionLineaAzul(porcentajeActualLineaAzul);
+            posicionarLineaAzulEnPantalla();
             ajustarAltoLineaVerticalAzul();
         }
 
-        // Ajustador para que la línea azul atraviese físicamente todas las filas
         function ajustarAltoLineaVerticalAzul() {
             const contenedorCuerpo = document.getElementById('contenedor-lineas-completo');
-            const totalH = cabecera.getBoundingClientRect().height + contenedorCuerpo.getBoundingClientRect().height + 30;
+            const totalH = cabecera.getBoundingClientRect().height + contenedorCuerpo.getBoundingClientRect().height + 40;
             document.getElementById('linea-azul').style.height = `${totalH}px`;
         }
 
-        // --- 4. GESTIÓN DE LÍNEAS Y NOMBRES ---
+        // --- GESTIÓN DE LÍNEAS Y COLORES ---
         const contenedorLineasCompleto = document.getElementById('contenedor-lineas-completo');
         let baseDatosRangos = {};
 
@@ -479,6 +528,9 @@
             fila.className = 'fila-linea-reserva';
             fila.id = `fila-${id}`;
             
+            const colorLineaAsignado = paletaColores[colorIndiceGlobal % paletaColores.length];
+            colorIndiceGlobal++;
+            
             fila.innerHTML = `
                 <div class="columna-fija-mandos">
                     <button onclick="moverLinea('${id}', 'subir')">▲</button>
@@ -488,7 +540,7 @@
                 </div>
                 <div class="scroll-horizontal-timeline" id="scroll-linea-${id}" onscroll="sincronizarScrolls(this)">
                     <div class="wrapper-timeline" style="width: ${cabecera.getBoundingClientRect().width}px;">
-                        <div class="zona-rangos" id="zona-rangos-${id}" onclick="gestionarClicksRango(event, '${id}')"></div>
+                        <div class="zona-rangos" id="zona-rangos-${id}" onclick="gestionarClicksRango(event, '${id}', '${colorLineaAsignado}')"></div>
                     </div>
                 </div>
             `;
@@ -503,11 +555,9 @@
             else if (dir === 'bajar' && el.nextElementSibling) contenedorLineasCompleto.insertBefore(el.nextElementSibling, el);
         }
 
-        // --- 5. LÓGICA DE DIBUJO DE RANGOS ---
-        let primerClick = null, rangoEditando = null, bordeEditando = null;
-        let xInicial = 0, anchoInicial = 0, izquierdaInicial = 0;
-
-        function gestionarClicksRango(event, lineaId) {
+        // --- RANGOS ---
+        let primerClick = null;
+        function gestionarClicksRango(event, lineaId, colorHex) {
             if (event.target.classList.contains('rango-creado') || event.target.classList.contains('control-borde') || event.target.closest('.tag-nombre-rango') || event.target.tagName === 'BUTTON') return;
             const zona = document.getElementById(`zona-rangos-${lineaId}`);
             const rect = zona.getBoundingClientRect();
@@ -522,7 +572,7 @@
                 let ancho = Math.max(2, fin - inicio);
 
                 if (!comprobarSuperposicion(zona, inicio, ancho)) {
-                    dibujarRango(zona, inicio, ancho);
+                    dibujarRango(zona, inicio, ancho, colorHex);
                 } else {
                     alert("¡Error! Los rangos no se pueden superponer.");
                 }
@@ -542,21 +592,20 @@
             return solapa;
         }
 
-        function dibujarRango(zona, inicio, ancho) {
+        function dibujarRango(zona, inicio, ancho, colorHex) {
             const rangoId = `rango-${Date.now()}`;
             const rangoEl = document.createElement('div');
             rangoEl.className = 'rango-creado';
             rangoEl.id = rangoId;
             
             baseDatosRangos[rangoId] = { inicio: inicio, fin: inicio + ancho, nombres: [], destinoPlano: null };
-
-            rangoEl.style.cssText = `position:absolute; left:${inicio}%; width:${ancho}%; height:100%; background:#28a745; color:white; display:flex; align-items:center; justify-content:space-between; font-size:10px; border-radius:4px; z-index:5;`;
+            rangoEl.style.cssText = `position:absolute; left:${inicio}%; width:${ancho}%; background:${colorHex};`;
             rangoEl.innerHTML = `
-                <div class="control-borde" onmousedown="iniciarResize(event, '${rangoId}', 'izq')" ontouchstart="iniciarResize(event, '${rangoId}', 'izq')" style="width:12px; height:100%; background:rgba(0,0,0,0.15); cursor:ew-resize;"></div>
+                <div class="control-borde" onmousedown="iniciarResizeRango(event, '${rangoId}', 'izq')" ontouchstart="iniciarResizeRango(event, '${rangoId}', 'izq')" style="width:10px; height:100%; cursor:ew-resize;"></div>
                 <div class="contenedor-nombres-rango" id="box-nombres-${rangoId}"></div>
-                <button onclick="event.stopPropagation(); enviarAPlano('${rangoId}')" style="background:#ffc107; color:black; border:none; padding:1px 3px; font-size:9px; border-radius:2px; font-weight:bold; cursor:pointer; margin-right:2px;">👉 Enviar</button>
+                <button onclick="event.stopPropagation(); enviarAPlano('${rangoId}')" style="background:#ffc107; color:black; border:none; padding:1px 3px; font-size:9px; font-weight:bold; cursor:pointer; margin-right:2px;">👉 Enviar</button>
                 <button onclick="event.stopPropagation(); delete baseDatosRangos['${rangoId}']; this.parentElement.remove();" style="background:none; border:none; color:white; font-weight:bold; cursor:pointer; margin-right:4px;">×</button>
-                <div class="control-borde" onmousedown="iniciarResize(event, '${rangoId}', 'der')" ontouchstart="iniciarResize(event, '${rangoId}', 'der')" style="width:12px; height:100%; background:rgba(0,0,0,0.15); cursor:ew-resize;"></div>
+                <div class="control-borde" onmousedown="iniciarResizeRango(event, '${rangoId}', 'der')" ontouchstart="iniciarResizeRango(event, '${rangoId}', 'der')" style="width:10px; height:100%; cursor:ew-resize;"></div>
             `;
 
             rangoEl.addEventListener('dragover', (e) => e.preventDefault());
@@ -568,7 +617,6 @@
                 renderizarNombresEnRango(rangoId);
                 actualizarPlanoDinamico();
             });
-
             zona.appendChild(rangoEl);
         }
 
@@ -589,44 +637,38 @@
             actualizarPlanoDinamico();
         }
 
-        function iniciarResize(e, rangoId, borde) {
+        // --- RESIZE DE RANGOS DEL TIMELINE ---
+        let rangoEditando = null, bordeEditando = null, xInicial = 0, anchoInicial = 0, izquierdaInicial = 0;
+        function iniciarResizeRango(e, rangoId, borde) {
             e.stopPropagation(); e.preventDefault();
             rangoEditando = document.getElementById(rangoId);
             bordeEditando = borde;
             xInicial = e.touches ? e.touches[0].clientX : e.clientX;
             anchoInicial = parseFloat(rangoEditando.style.width);
             izquierdaInicial = parseFloat(rangoEditando.style.left);
-
-            window.addEventListener('mousemove', moverResize);
-            window.addEventListener('mouseup', detenerResize);
-            window.addEventListener('touchmove', moverResize, { passive: false });
-            window.addEventListener('touchend', detenerResize);
+            window.addEventListener('mousemove', moverResizeRango);
+            window.addEventListener('mouseup', detenerResizeRango);
+            window.addEventListener('touchmove', moverResizeRango, { passive: false });
+            window.addEventListener('touchend', detenerResizeRango);
         }
-
-        function moverResize(e) {
+        function moverResizeRango(e) {
             if (!rangoEditando) return;
             const cx = e.touches ? e.touches[0].clientX : e.clientX;
             const pctDelta = ((cx - xInicial) / rangoEditando.parentElement.getBoundingClientRect().width) * 100;
             let nLeft = izquierdaInicial, nAncho = anchoInicial;
-
-            if (bordeEditando === 'izq') { nLeft += pctDelta; nAncho -= pctDelta; }
-            else { nAncho += pctDelta; }
-
+            if (bordeEditando === 'izq') { nLeft += pctDelta; nAncho -= pctDelta; } else { nAncho += pctDelta; }
             if (nAncho > 2 && nLeft >= 0 && nLeft + nAncho <= 100 && !comprobarSuperposicion(rangoEditando.parentElement, nLeft, nAncho, rangoEditando.id)) {
-                rangoEditando.style.left = `${nLeft}%`;
-                rangoEditando.style.width = `${nAncho}%`;
-                baseDatosRangos[rangoEditando.id].inicio = nLeft;
-                baseDatosRangos[rangoEditando.id].fin = nLeft + nAncho;
+                rangoEditando.style.left = `${nLeft}%`; rangoEditando.style.width = `${nAncho}%`;
+                baseDatosRangos[rangoEditando.id].inicio = nLeft; baseDatosRangos[rangoEditando.id].fin = nLeft + nAncho;
             }
         }
-        function detenerResize() { rangoEditando = null; }
+        function detenerResizeRango() { rangoEditando = null; }
 
-        // --- 6. CONTROL COHERENTE DE LA LÍNEA AZUL INTER-CAPAS ---
+        // --- CONTROL MATEMÁTICO DE LA LÍNEA AZUL FLOTANTE GLOBAL ---
         const ctrlAzul = document.getElementById('control-linea');
         const lineaAzul = document.getElementById('linea-azul');
-        const wrapperCabecera = document.getElementById('wrapper-cabecera');
-        let dragAzul = false;
-        let porcentajeActualLineaAzul = 5;
+        const scrollCabecera = document.getElementById('scroll-cabecera');
+        let dragAzul = false, porcentajeActualLineaAzul = 5;
 
         ctrlAzul.onmousedown = () => dragAzul = true;
         ctrlAzul.ontouchstart = () => dragAzul = true;
@@ -634,19 +676,30 @@
         window.ontouchend = window.onmouseup;
 
         function calcularYActualizarLinea(clientX) {
-            const rectWrapper = wrapperCabecera.getBoundingClientRect();
-            let xLocal = clientX - rectWrapper.left;
-            xLocal = Math.max(0, Math.min(xLocal, rectWrapper.width));
-            porcentajeActualLineaAzul = (xLocal / rectWrapper.width) * 100;
-            actualizarPosicionLineaAzul(porcentajeActualLineaAzul);
+            const rectScroll = scrollCabecera.getBoundingClientRect();
+            let xPantallaLocal = clientX - rectScroll.left;
+            xPantallaLocal = Math.max(0, Math.min(xPantallaLocal, rectScroll.width));
+            
+            let xRealInterno = xPantallaLocal + scrollCabecera.scrollLeft;
+            porcentajeActualLineaAzul = (xRealInterno / scrollCabecera.scrollWidth) * 100;
+            posicionarLineaAzulEnPantalla();
         }
 
-        function actualizarPosicionLineaAzul(porcentaje) {
-            const totalAncho = cabecera.getBoundingClientRect().width;
-            let xPixel = (porcentaje / 100) * totalAncho;
-            lineaAzul.style.left = `${xPixel}px`;
-            
-            let indexDia = Math.floor((porcentaje / 100) * diasDelRango.length);
+        function posicionarLineaAzulEnPantalla() {
+            const rectScroll = scrollCabecera.getBoundingClientRect();
+            let xRealInterno = (porcentajeActualLineaAzul / 100) * scrollCabecera.scrollWidth;
+            let xVisualPantalla = xRealInterno - scrollCabecera.scrollLeft;
+
+            // Renderizar la posición en el Viewport global
+            lineaAzul.style.left = `${rectScroll.left + xVisualPantalla}px`;
+
+            if (xVisualPantalla < 0 || xVisualPantalla > rectScroll.width) {
+                lineaAzul.style.opacity = "0.1"; // Atenuar si sale del área visible
+            } else {
+                lineaAzul.style.opacity = "1";
+            }
+
+            let indexDia = Math.floor((porcentajeActualLineaAzul / 100) * diasDelRango.length);
             indexDia = Math.max(0, Math.min(indexDia, diasDelRango.length - 1));
             const fecha = diasDelRango[indexDia];
             ctrlAzul.innerText = `◀ ${fecha.getDate()} ${fecha.toLocaleString('es-ES', {month:'short'})} ▶`;
@@ -656,22 +709,39 @@
         window.addEventListener('mousemove', (e) => { if (dragAzul) calcularYActualizarLinea(e.clientX); });
         window.addEventListener('touchmove', (e) => { if (dragAzul && e.touches.length > 0) calcularYActualizarLinea(e.touches[0].clientX); });
 
-        // Arranque inicial calibrado
-        setTimeout(() => { cambiarZoom(0); actualizarPosicionLineaAzul(5); }, 200);
+        // --- RESIZE DE PANELES (ZONA 1 Y ZONA 3) ---
+        const resizerLateral = document.getElementById('resizer-lateral');
+        const panelIzquierdo = document.getElementById('panel-izquierdo');
+        resizerLateral.addEventListener('mousedown', (e) => { e.preventDefault(); window.addEventListener('mousemove', resizeH); window.addEventListener('mouseup', stopResizeH); });
+        resizerLateral.addEventListener('touchstart', (e) => { window.addEventListener('touchmove', resizeHTouch); window.addEventListener('touchend', stopResizeH); });
+        function resizeH(e) { panelIzquierdo.style.width = `${e.clientX}px`; posicionarLineaAzulEnPantalla(); }
+        function resizeHTouch(e) { if(e.touches.length > 0) { panelIzquierdo.style.width = `${e.touches[0].clientX}px`; posicionarLineaAzulEnPantalla(); } }
+        function stopResizeH() { window.removeEventListener('mousemove', resizeH); window.removeEventListener('touchmove', resizeHTouch); }
 
-        // --- 7. LÓGICA DEL PLANO INTERACTIVO ---
+        const resizerPlano = document.getElementById('resizer-plano');
+        const panelPlano = document.getElementById('panel-plano');
+        resizerPlano.addEventListener('mousedown', (e) => { e.preventDefault(); window.addEventListener('mousemove', resizeV); window.addEventListener('mouseup', stopResizeV); });
+        resizerPlano.addEventListener('touchstart', (e) => { window.addEventListener('touchmove', resizeVTouch); window.addEventListener('touchend', stopResizeV); });
+        function resizeV(e) { let h = window.innerHeight - e.clientY; panelPlano.style.height = `${h}px`; }
+        function resizeVTouch(e) { if(e.touches.length > 0) { let h = window.innerHeight - e.touches[0].clientY; panelPlano.style.height = `${h}px`; } }
+        function stopResizeV() { window.removeEventListener('mousemove', resizeV); window.removeEventListener('touchmove', resizeVTouch); setTimeout(() => { ajustarAltoLineaVerticalAzul(); posicionarLineaAzulEnPantalla(); }, 100); }
+
+
+        // --- LÓGICA DEL PLANO INTERACTIVO Y REDIMENSIÓN MULTI-NODO (8 DIRECCIONES) ---
         let herramienta = null, objetosPlano = []; 
-        let drawing = false, startX, startY, currentObjId = null, resizePlanoObj = false, planoTargetId = null;
+        let drawing = false, startX, startY, currentObjId = null;
+        let resizePlanoObj = false, planoTargetId = null, nodoDireccion = null;
+        let objOriginalState = {};
 
         function setHerramienta(t) {
             herramienta = t;
-            document.getElementById('btn-herramienta-piso').className = t === 'piso' ? 'activo' : '';
-            document.getElementById('btn-herramienta-hab').className = t === 'habitacion' ? 'activo' : '';
+            document.getElementById('btn-herramienta-piso').style.background = t === 'piso' ? '#28a745' : '#007bff';
+            document.getElementById('btn-herramienta-hab').style.background = t === 'habitacion' ? '#17a2b8' : '#007bff';
         }
 
         function iniciarDibujo(e) {
             if (!herramienta) return;
-            if (e.target.classList.contains('vertice-resize') || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+            if (e.target.classList.contains('nodo-resize') || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
             const rect = document.getElementById('lienzo-plano').getBoundingClientRect();
             const cx = e.touches ? e.touches[0].clientX : e.clientX;
             const cy = e.touches ? e.touches[0].clientY : e.clientY;
@@ -680,7 +750,7 @@
             drawing = true;
             
             currentObjId = `obj-${Date.now()}`;
-            const nuevoObj = { id: currentObjId, tipo: herramienta, nombre: herramienta === 'piso' ? 'Nuevo Piso' : 'Habitación', x: startX, y: startY, w: 90, h: 60 };
+            const nuevoObj = { id: currentObjId, tipo: herramienta, nombre: herramienta === 'piso' ? 'Nuevo Piso' : 'Habitación', x: startX, y: startY, w: 100, h: 70 };
 
             if (herramienta === 'piso' && detectarColisionPisos(nuevoObj)) { drawing = false; alert("No puedes superponer pisos."); return; }
             if (herramienta === 'habitacion' && !comprobarHabitacionDentroDePiso(nuevoObj).dentro) { drawing = false; alert("Las habitaciones van dentro de un Piso."); return; }
@@ -688,6 +758,7 @@
             objetosPlano.push(nuevoObj);
             renderizarPlano();
             setHerramienta(null);
+            drawing = false;
         }
 
         function detectarColisionPisos(nuevo, idIgnorar = null) {
@@ -722,10 +793,18 @@
                 el.innerHTML = `
                     <div class="header-objeto">
                         <input type="text" value="${o.nombre}" onchange="objetosPlano.find(x=>x.id==='${o.id}').nombre=this.value">
-                        <button onclick="eliminarObjetoPlano('${o.id}')" style="background:none; border:none; color:red; font-weight:bold;">×</button>
+                        <button onclick="eliminarObjetoPlano('${o.id}')" style="background:none; border:none; color:red; font-weight:bold; cursor:pointer;">×</button>
                     </div>
                     <div class="lista-nombres-en-plano" id="dinamico-nombres-${o.id}"></div>
-                    <div class="vertice-resize" onmousedown="iniciarResizePlano(event, '${o.id}')" ontouchstart="iniciarResizePlano(event, '${o.id}')"></div>
+                    
+                    <div class="nodo-resize nodo-n"  onmousedown="iniciarResizePlano(event, '${o.id}', 'n')"  ontouchstart="iniciarResizePlano(event, '${o.id}', 'n')"></div>
+                    <div class="nodo-resize nodo-s"  onmousedown="iniciarResizePlano(event, '${o.id}', 's')"  ontouchstart="iniciarResizePlano(event, '${o.id}', 's')"></div>
+                    <div class="nodo-resize nodo-e"  onmousedown="iniciarResizePlano(event, '${o.id}', 'e')"  ontouchstart="iniciarResizePlano(event, '${o.id}', 'e')"></div>
+                    <div class="nodo-resize nodo-w"  onmousedown="iniciarResizePlano(event, '${o.id}', 'w')"  ontouchstart="iniciarResizePlano(event, '${o.id}', 'w')"></div>
+                    <div class="nodo-resize nodo-nw" onmousedown="iniciarResizePlano(event, '${o.id}', 'nw')" ontouchstart="iniciarResizePlano(event, '${o.id}', 'nw')"></div>
+                    <div class="nodo-resize nodo-ne" onmousedown="iniciarResizePlano(event, '${o.id}', 'ne')" ontouchstart="iniciarResizePlano(event, '${o.id}', 'ne')"></div>
+                    <div class="nodo-resize nodo-sw" onmousedown="iniciarResizePlano(event, '${o.id}', 'sw')" ontouchstart="iniciarResizePlano(event, '${o.id}', 'sw')"></div>
+                    <div class="nodo-resize nodo-se" onmousedown="iniciarResizePlano(event, '${o.id}', 'se')" ontouchstart="iniciarResizePlano(event, '${o.id}', 'se')"></div>
                 `;
                 lienzo.appendChild(el);
             });
@@ -734,14 +813,17 @@
 
         function eliminarObjetoPlano(id) { objetosPlano = objetosPlano.filter(o => o.id !== id); renderizarPlano(); }
 
-        function iniciarResizePlano(e, id) {
+        // --- SISTEMA MATEMÁTICO DE RESIZE PARA LAS 8 DIRECCIONES EN EL PLANO ---
+        function iniciarResizePlano(e, id, direccion) {
             e.stopPropagation(); e.preventDefault();
-            resizePlanoObj = true; planoTargetId = id;
+            resizePlanoObj = true; planoTargetId = id; nodoDireccion = direccion;
+            
             const cx = e.touches ? e.touches[0].clientX : e.clientX;
             const cy = e.touches ? e.touches[0].clientY : e.clientY;
             startX = cx; startY = cy;
+            
             const obj = objetosPlano.find(o => o.id === id);
-            anchoInicial = obj.w; hInicial = obj.h;
+            objOriginalState = { x: obj.x, y: obj.y, w: obj.w, h: obj.h };
 
             window.addEventListener('mousemove', moverResizePlano);
             window.addEventListener('mouseup', detenerResizePlano);
@@ -753,31 +835,51 @@
             if (!resizePlanoObj) return;
             const cx = e.touches ? e.touches[0].clientX : e.clientX;
             const cy = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            let dx = cx - startX;
+            let dy = cy - startY;
             const obj = objetosPlano.find(o => o.id === planoTargetId);
-            let nw = Math.max(60, anchoInicial + (cx - startX));
-            let nh = Math.max(40, hInicial + (cy - startY));
+            
+            let nx = objOriginalState.x;
+            let ny = objOriginalState.y;
+            let nw = objOriginalState.w;
+            let nh = objOriginalState.h;
 
-            if (obj.tipo === 'piso' && detectarColisionPisos({...obj, w: nw, h: nh}, obj.id)) return;
-            obj.w = nw; obj.h = nh;
-            const dom = document.getElementById(obj.id);
-            if(dom) { dom.style.width = `${nw}px`; dom.style.height = `${nh}px`; }
+            // Evaluar vector de dirección según el nodo arrastrado
+            if (nodoDireccion.includes('e')) { nw += dx; }
+            if (nodoDireccion.includes('w')) { nx += dx; nw -= dx; }
+            if (nodoDireccion.includes('s')) { nh += dy; }
+            if (nodoDireccion.includes('n')) { ny += dy; nh -= dy; }
+
+            // Umbrales mínimos de tamaño
+            if (nw > 40 && nh > 30 && nx >= 0 && ny >= 0) {
+                if (obj.tipo === 'piso' && detectarColisionPisos({x: nx, y: ny, w: nw, h: nh}, obj.id)) return;
+                
+                obj.x = nx; obj.y = ny; obj.w = nw; obj.h = nh;
+                const dom = document.getElementById(obj.id);
+                if(dom) {
+                    dom.style.left = `${nx}px`; dom.style.top = `${ny}px`;
+                    dom.style.width = `${nw}px`; dom.style.height = `${nh}px`;
+                }
+            }
         }
 
         function detenerResizePlano() {
             if(resizePlanoObj && planoTargetId) {
                 const obj = objetosPlano.find(o => o.id === planoTargetId);
                 if(obj && obj.tipo === 'habitacion' && !comprobarHabitacionDentroDePiso(obj).dentro) {
-                    alert("No puedes redimensionar una habitación fuera de un piso.");
-                    eliminarObjetoPlano(obj.id);
+                    alert("No puedes dejar una habitación fuera de los límites de un piso.");
+                    obj.x = objOriginalState.x; obj.y = objOriginalState.y;
+                    obj.w = objOriginalState.w; obj.h = objOriginalState.h;
+                    renderizarPlano();
                 }
             }
-            resizePlanoObj = false;
+            resizePlanoObj = false; window.removeEventListener('mousemove', moverResizePlano); window.removeEventListener('touchmove', moverResizePlano);
         }
 
-        // --- 8. VINCULACIÓN AL PLANO ---
         function enviarAPlano(rangoId) {
             if(baseDatosRangos[rangoId].nombres.length === 0 || objetosPlano.length === 0) {
-                alert("Asegúrate de tener nombres asignados y áreas dibujadas."); return;
+                alert("Asigna nombres en la pista y dibuja espacios en el plano antes."); return;
             }
             let opciones = objetosPlano.map((o, idx) => `${idx} - ${o.nombre}`).join("\n");
             let eleccion = prompt(`Selecciona el número de área de destino:\n${opciones}`);
@@ -801,6 +903,9 @@
                 }
             }
         }
+
+        window.addEventListener('resize', () => { posicionarLineaAzulEnPantalla(); });
+        setTimeout(() => { cambiarZoom(0); porcentajeActualLineaAzul = 5; posicionarLineaAzulEnPantalla(); }, 200);
     </script>
 </body>
 </html>
