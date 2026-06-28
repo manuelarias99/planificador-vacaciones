@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Planificador de Vacaciones</title>
 <style>
 :root{
@@ -16,9 +16,11 @@
   --b:rgba(255,255,255,0.08);--bs:rgba(255,255,255,0.14);--bst:rgba(255,255,255,0.25);
   --ba:#378add;--bga:#042c53;
 }}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font);color:var(--tp);background:var(--s0);height:100vh;overflow:hidden}
-#app{display:grid;grid-template-columns:180px 1fr;gap:8px;height:100vh;padding:10px;overflow:hidden}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--font);color:var(--tp);background:var(--s0);height:100dvh;overflow:hidden;touch-action:pan-x pan-y}
+
+/* ── DESKTOP LAYOUT ── */
+#app{display:grid;grid-template-columns:180px 1fr;gap:8px;height:100dvh;padding:10px;overflow:hidden}
 #left{display:flex;flex-direction:column;gap:8px;overflow:hidden}
 .panel{background:var(--s1);border:0.5px solid var(--b);border-radius:12px;padding:10px}
 .panel h3{font-size:11px;font-weight:500;color:var(--ts);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
@@ -102,21 +104,135 @@ body{font-family:var(--font);color:var(--tp);background:var(--s0);height:100vh;o
 .fp-corner.br{bottom:-4px;right:-4px;cursor:nwse-resize}
 .draw-ghost{position:absolute;border:1.5px dashed var(--ta);border-radius:3px;pointer-events:none;background:var(--bga);opacity:0.35}
 .fp-chip{position:absolute;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:500;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.35);border:1.5px solid rgba(255,255,255,0.3);cursor:grab;z-index:20;user-select:none;white-space:nowrap}
-/* drop zone for range-person chips in fp */
 #fp-canvas.drag-over-fp{outline:2px dashed var(--ba);outline-offset:2px}
+
+/* ── MOBILE STYLES ── */
+#mobile-nav{display:none}
+#mobile-fab{display:none}
+
+/* Long-press delete toast */
+#lp-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;pointer-events:none;opacity:0;transition:opacity .2s;z-index:9999;white-space:nowrap}
+#lp-toast.show{opacity:1}
+
+/* Touch drag ghost */
+#touch-ghost{position:fixed;pointer-events:none;z-index:99999;opacity:0.85;display:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:500;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.35);border:1.5px solid rgba(255,255,255,0.25);transform:translate(-50%,-50%)}
+
+@media(max-width:640px){
+  body{overflow:hidden}
+  #app{
+    grid-template-columns:1fr;
+    grid-template-rows:1fr auto;
+    padding:0;
+    gap:0;
+    height:100dvh;
+  }
+  #left{display:none;position:fixed;inset:0;z-index:200;background:var(--s0);padding:16px;gap:12px;overflow-y:auto}
+  #left.mobile-open{display:flex}
+  #left .panel{border-radius:16px;padding:14px}
+  #left .panel h3{font-size:13px;margin-bottom:12px}
+  #name-input{padding:10px 12px;font-size:16px;border-radius:10px}
+  #add-btn{padding:12px;font-size:15px;border-radius:10px;margin-top:10px}
+  .person-chip{min-height:44px;font-size:14px;border-radius:10px;padding:8px 14px}
+  #chips-list{gap:8px}
+
+  #right{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
+
+  #timeline-panel{
+    border-radius:0;
+    border-left:none;border-right:none;border-top:none;
+    padding:8px 10px 6px;
+    flex-shrink:0;
+  }
+  #cal-controls{gap:5px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px}
+  #cal-controls::-webkit-scrollbar{display:none}
+  .month-label{font-size:12px;white-space:nowrap}
+  .fp-btn{padding:7px 11px;font-size:12px;flex-shrink:0;min-height:36px;border-radius:8px}
+
+  #splitter{margin:0;height:10px;border-radius:0;cursor:row-resize}
+
+  #fp-panel{border-radius:0;border-left:none;border-right:none;border-bottom:none;padding:8px 10px 6px}
+  #fp-controls{gap:5px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px}
+  #fp-controls::-webkit-scrollbar{display:none}
+
+  .track-row{height:44px}
+  .track-label-cell{width:90px}
+  .track-name-input{font-size:12px}
+  .range-fill{height:22px;top:11px;border-radius:5px}
+  .range-handle{width:16px} /* wider touch targets */
+  .track-chip{height:28px;top:8px;font-size:11px;border-radius:6px;padding:0 8px}
+  .chip-del{font-size:11px;padding:0 3px}
+
+  /* Mobile bottom nav */
+  #mobile-nav{
+    display:flex;
+    background:var(--s1);
+    border-top:0.5px solid var(--b);
+    flex-shrink:0;
+    z-index:100;
+  }
+  .mnav-btn{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;padding:8px 4px;font-size:10px;color:var(--tm);border:none;background:none;
+    cursor:pointer;font-family:var(--font);min-height:56px;
+  }
+  .mnav-btn.active{color:var(--ta)}
+  .mnav-btn .micon{font-size:20px;line-height:1}
+  .mnav-btn .mlabel{font-size:10px;line-height:1}
+
+  /* Mobile personas overlay close btn */
+  #mobile-close-personas{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:8px;
+  }
+  #mobile-close-personas h2{font-size:16px;font-weight:600;color:var(--tp)}
+  #btn-close-personas{
+    background:var(--s2);border:0.5px solid var(--bs);border-radius:20px;
+    padding:6px 14px;font-size:13px;cursor:pointer;color:var(--tp);font-family:var(--font);
+  }
+
+  /* Zoom buttons instead of slider */
+  .zoom-btn-group{display:flex;gap:4px;align-items:center;flex-shrink:0}
+  .zoom-btn{width:32px;height:32px;border-radius:8px;border:0.5px solid var(--bs);background:var(--s2);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tp)}
+
+  /* fp corner bigger for touch */
+  .fp-corner{width:18px;height:18px;border-radius:4px}
+  .fp-corner.tl{top:-8px;left:-8px}
+  .fp-corner.tr{top:-8px;right:-8px}
+  .fp-corner.bl{bottom:-8px;left:-8px}
+  .fp-corner.br{bottom:-8px;right:-8px}
+
+  .fp-chip{padding:5px 12px;font-size:12px;min-height:30px;border-radius:8px}
+
+  #delete-mode-bar{font-size:11px;padding:5px 10px}
+
+  /* Day header bigger tap targets */
+  .day-col-h{padding:4px 0}
+  .day-num{font-size:12px}
+  .day-name{font-size:10px}
+
+  /* cursor arrows bigger */
+  #cursor-arrows{padding:5px 10px;font-size:13px}
+}
 </style>
 </head>
-<body style="">
+<body>
+<div id="touch-ghost"></div>
+<div id="lp-toast"></div>
 <div id="app">
   <div id="left">
+    <!-- Mobile header -->
+    <div id="mobile-close-personas">
+      <h2>Personas</h2>
+      <button id="btn-close-personas" onclick="closeMobilePersonas()">Cerrar</button>
+    </div>
     <div class="panel" style="flex-shrink:0">
-      <h3>Personas</h3>
-      <input id="name-input" placeholder="Nombre completo..." maxlength="20">
+      <h3>Añadir persona</h3>
+      <input id="name-input" placeholder="Nombre..." maxlength="20">
       <button id="add-btn" onclick="addPerson()">+ Añadir</button>
     </div>
     <div class="panel" style="flex:1;overflow-y:auto">
-      <h3>Arrastrar</h3>
-      <div id="chips-list"><div style="display: flex; align-items: center; gap: 4px;"><div class="person-chip" draggable="true" data-pid="1782578452187" style="background: rgb(127, 119, 221); flex: 1 1 0%;">mama</div><button title="Eliminar persona" style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; cursor: pointer; color: var(--tm); font-size: 11px; padding: 2px; flex-shrink: 0;">✕</button></div><div style="display: flex; align-items: center; gap: 4px;"><div class="person-chip" draggable="true" data-pid="1782578453540" style="background: rgb(29, 158, 117); flex: 1 1 0%;">papa</div><button title="Eliminar persona" style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; cursor: pointer; color: var(--tm); font-size: 11px; padding: 2px; flex-shrink: 0;">✕</button></div><div style="display: flex; align-items: center; gap: 4px;"><div class="person-chip" draggable="true" data-pid="1782596050832" style="background: rgb(216, 90, 48); flex: 1 1 0%;">Miguel</div><button title="Eliminar persona" style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; cursor: pointer; color: var(--tm); font-size: 11px; padding: 2px; flex-shrink: 0;">✕</button></div><div style="display: flex; align-items: center; gap: 4px;"><div class="person-chip" draggable="true" data-pid="1782596053020" style="background: rgb(212, 83, 126); flex: 1 1 0%;">Marta</div><button title="Eliminar persona" style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; cursor: pointer; color: var(--tm); font-size: 11px; padding: 2px; flex-shrink: 0;">✕</button></div></div>
+      <h3>Arrastra al calendario</h3>
+      <div id="chips-list"></div>
     </div>
   </div>
   <div id="right">
@@ -124,28 +240,35 @@ body{font-family:var(--font);color:var(--tp);background:var(--s0);height:100vh;o
       <div id="cal-controls">
         <span class="month-label">Jul — Ago 2025</span>
         <span style="flex:1"></span>
-        <label style="font-size:12px;color:var(--ts)">Zoom</label>
-        <input type="range" id="zoom-slider" min="20" max="90" value="36" oninput="setZoom(+this.value)" style="width:90px;cursor:pointer">
-        <span id="zoom-val">36px</span>
-        <button class="fp-btn" id="btn-undo" onclick="undo()" title="Deshacer (Ctrl+Z)">↩ Deshacer</button>
-        <button class="fp-btn" id="btn-delete-range" onclick="toggleDeleteMode()">✂ Borrar rango</button>
-        <button class="fp-btn" onclick="saveFile()">💾 Guardar</button>
-        <label class="fp-btn" style="cursor:pointer">📂 Cargar<input type="file" accept=".html,.json" style="display:none" onchange="loadFile(event)"></label>
+        <!-- Desktop zoom slider (hidden on mobile) -->
+        <label class="desktop-only" style="font-size:12px;color:var(--ts)">Zoom</label>
+        <input type="range" id="zoom-slider" min="20" max="90" value="36" oninput="setZoom(+this.value)" class="desktop-only" style="width:90px;cursor:pointer">
+        <span id="zoom-val" class="desktop-only">36px</span>
+        <!-- Mobile zoom buttons -->
+        <div class="zoom-btn-group mobile-only" style="display:none">
+          <button class="zoom-btn" onclick="adjustZoom(-6)">−</button>
+          <span id="zoom-val-m" style="font-size:11px;color:var(--tm);min-width:28px;text-align:center">36</span>
+          <button class="zoom-btn" onclick="adjustZoom(6)">+</button>
+        </div>
+        <button class="fp-btn" id="btn-undo" onclick="undo()" title="Deshacer">↩</button>
+        <button class="fp-btn" id="btn-delete-range" onclick="toggleDeleteMode()">✂ Borrar</button>
+        <button class="fp-btn" onclick="saveFile()">💾</button>
+        <label class="fp-btn" style="cursor:pointer">📂<input type="file" accept=".html,.json" style="display:none" onchange="loadFile(event)"></label>
         <button class="fp-btn" onclick="addTrack()">+ Línea</button>
       </div>
       <div id="delete-mode-bar">
-        <span>Modo borrar: haz clic sobre un rango coloreado para eliminarlo.</span>
+        <span>Toca un rango para eliminarlo.</span>
         <button class="fp-btn" onclick="toggleDeleteMode()" style="padding:2px 8px">Cancelar</button>
       </div>
       <div id="cal-track-wrap">
         <div id="cal-track-inner" style="width: 1550px;">
-          <div id="cal-header" style="width: 1550px;"><div style="width: 110px; flex-shrink: 0; border-right: 0.5px solid var(--b);"></div><div class="day-col-h" style="width: 36px;"><div class="month-sep"></div><div class="day-name">X</div><div class="day-num">23</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">J</div><div class="day-num">24</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">V</div><div class="day-num">25</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">S</div><div class="day-num weekend">26</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">D</div><div class="day-num weekend">27</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">L</div><div class="day-num">28</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">M</div><div class="day-num">29</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">X</div><div class="day-num">30</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">J</div><div class="day-num">31</div></div><div class="day-col-h" style="width: 36px;"><div class="month-sep"></div><div class="day-name">V</div><div class="day-num">1</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">S</div><div class="day-num weekend">2</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">D</div><div class="day-num weekend">3</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">L</div><div class="day-num">4</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">M</div><div class="day-num">5</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">X</div><div class="day-num">6</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">J</div><div class="day-num">7</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">V</div><div class="day-num">8</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">S</div><div class="day-num weekend">9</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">D</div><div class="day-num weekend">10</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">L</div><div class="day-num">11</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">M</div><div class="day-num">12</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">X</div><div class="day-num">13</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">J</div><div class="day-num">14</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">V</div><div class="day-num">15</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">S</div><div class="day-num weekend">16</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">D</div><div class="day-num weekend">17</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">L</div><div class="day-num">18</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">M</div><div class="day-num">19</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">X</div><div class="day-num">20</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">J</div><div class="day-num">21</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">V</div><div class="day-num">22</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">S</div><div class="day-num weekend">23</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">D</div><div class="day-num weekend">24</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">L</div><div class="day-num">25</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">M</div><div class="day-num">26</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">X</div><div class="day-num">27</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">J</div><div class="day-num">28</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">V</div><div class="day-num">29</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">S</div><div class="day-num weekend">30</div></div><div class="day-col-h" style="width: 36px;"><div class="day-name">D</div><div class="day-num weekend">31</div></div></div>
-          <div id="tracks-body"><div class="track-row"><div class="track-label-cell"><span class="drag-handle" draggable="true" title="Reordenar">⠿</span><span class="tl-dot" style="background: rgb(212, 83, 126);"></span><input class="track-name-input" type="text"><button title="Eliminar línea" style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; cursor: pointer; color: var(--tm); font-size: 10px; padding: 0px 2px; flex-shrink: 0; line-height: 1;">✕</button></div><div class="track-bg" style="width: 1440px;"><div class="range-fill" title="Click derecho: eliminar | Bordes: estirar" style="background: rgb(212, 83, 126); left: 36px; width: 936px;"><div class="range-handle left"></div><div class="range-handle right"></div></div><div class="track-chip" draggable="true" style="background: rgb(127, 119, 221); left: 108px;"><span>mama</span><span class="chip-del" title="Quitar">✕</span></div><div class="track-chip" draggable="true" style="background: rgb(29, 158, 117); left: 252px;"><span>papa</span><span class="chip-del" title="Quitar">✕</span></div></div></div><div class="track-row"><div class="track-label-cell"><span class="drag-handle" draggable="true" title="Reordenar">⠿</span><span class="tl-dot" style="background: rgb(55, 138, 221);"></span><input class="track-name-input" type="text"><button title="Eliminar línea" style="background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; cursor: pointer; color: var(--tm); font-size: 10px; padding: 0px 2px; flex-shrink: 0; line-height: 1;">✕</button></div><div class="track-bg" style="width: 1440px; opacity: 1;"><div class="range-fill" title="Click derecho: eliminar | Bordes: estirar" style="background: rgb(55, 138, 221); left: 36px; width: 288px;"><div class="range-handle left"></div><div class="range-handle right"></div></div><div class="track-chip" draggable="true" style="background: rgb(216, 90, 48); left: 144px;"><span>Miguel</span><span class="chip-del" title="Quitar">✕</span></div><div class="track-chip" draggable="true" style="background: rgb(212, 83, 126); left: 72px;"><span>Marta</span><span class="chip-del" title="Quitar">✕</span></div></div></div></div>
+          <div id="cal-header" style="width: 1550px;"></div>
+          <div id="tracks-body"></div>
           <div class="add-track-row" id="add-track-row">
             <button class="fp-btn" style="font-size:11px;padding:2px 8px" onclick="addTrack()">+ añadir línea</button>
           </div>
-          <div id="cursor-wrap" style="display: block; left: 488px; top: 0px; height: 128px; pointer-events: all;">
-            <div id="cursor-line" style="height: 128px;"></div>
+          <div id="cursor-wrap">
+            <div id="cursor-line"></div>
             <div id="cursor-arrows">◀ ▶</div>
             <div id="cursor-handle-zone"></div>
           </div>
@@ -153,23 +276,47 @@ body{font-family:var(--font);color:var(--tp);background:var(--s0);height:100vh;o
       </div>
     </div>
     <!-- SPLITTER -->
-    <div id="splitter" class=""></div>
+    <div id="splitter"></div>
     <!-- FLOOR PLAN -->
     <div id="fp-panel" style="flex: 1 1 0%;">
       <div id="fp-controls">
-        <span id="fp-date-label">📅 2 Ago 2025</span>
+        <span id="fp-date-label">📅</span>
         <span style="flex:1"></span>
-        <label style="font-size:12px;color:var(--ts)">Zoom plano</label>
-        <input type="range" id="fp-zoom-slider" min="30" max="200" value="100" oninput="setFPZoom(+this.value)" style="width:80px;cursor:pointer">
-        <span id="fp-zoom-val" style="font-size:12px;color:var(--tm);min-width:36px">100%</span>
+        <label class="desktop-only" style="font-size:12px;color:var(--ts)">Zoom</label>
+        <input type="range" id="fp-zoom-slider" min="30" max="200" value="100" oninput="setFPZoom(+this.value)" class="desktop-only" style="width:80px;cursor:pointer">
+        <span id="fp-zoom-val" class="desktop-only" style="font-size:12px;color:var(--tm);min-width:36px">100%</span>
+        <div class="zoom-btn-group mobile-only" style="display:none">
+          <button class="zoom-btn" onclick="adjustFPZoom(-10)">−</button>
+          <span id="fp-zoom-val-m" style="font-size:11px;color:var(--tm);min-width:32px;text-align:center">100%</span>
+          <button class="zoom-btn" onclick="adjustFPZoom(10)">+</button>
+        </div>
         <button class="fp-btn" id="tool-floor" onclick="setTool('floor')">Piso</button>
-        <button class="fp-btn active" id="tool-room" onclick="setTool('room')">Habitación</button>
-        <button class="fp-btn" onclick="clearFloor()" style="color:var(--td)">Borrar todo</button>
+        <button class="fp-btn active" id="tool-room" onclick="setTool('room')">Hab.</button>
+        <button class="fp-btn" onclick="clearFloor()" style="color:var(--td)">🗑</button>
       </div>
       <div id="fp-viewport" style="cursor: crosshair;">
-        <div id="fp-canvas" class="" style="width: 2000px; height: 2000px;"><div class="floor-rect" title="Click derecho: eliminar | Esquinas: redimensionar" style="left: 52.5px; top: 47.5px; width: 604px; height: 290px; border-color: rgb(136, 135, 128);"><input class="el-label" type="text" style="color: rgb(136, 135, 128);"><div class="fp-corner tl"></div><div class="fp-corner tr"></div><div class="fp-corner bl"></div><div class="fp-corner br"></div></div><div class="room-rect" title="Click derecho: eliminar | Esquinas: redimensionar" style="left: 347.5px; top: 78.5px; width: 166px; height: 138px; border-color: rgb(83, 74, 183);"><input class="el-label" type="text" style="color: rgb(83, 74, 183);"><div class="fp-corner tl"></div><div class="fp-corner tr"></div><div class="fp-corner bl"></div><div class="fp-corner br"></div></div><div class="room-rect" title="Click derecho: eliminar | Esquinas: redimensionar" style="left: 82.5px; top: 75.5px; width: 185px; height: 139px; border-color: rgb(29, 158, 117);"><input class="el-label" type="text" style="color: rgb(29, 158, 117);"><div class="fp-corner tl"></div><div class="fp-corner tr"></div><div class="fp-corner bl"></div><div class="fp-corner br"></div></div><div class="fp-chip" title="mama [24/Jul–18/Ago] — Click derecho: quitar" style="left: 402px; top: 146px; background: rgb(127, 119, 221);">mama</div><div class="fp-chip" title="papa [24/Jul–18/Ago] — Click derecho: quitar" style="left: 384px; top: 179px; background: rgb(29, 158, 117);">papa</div></div>
+        <div id="fp-canvas" style="width: 2000px; height: 2000px;"></div>
       </div>
     </div>
+    <!-- Mobile bottom nav -->
+    <nav id="mobile-nav">
+      <button class="mnav-btn" onclick="openMobilePersonas()">
+        <span class="micon">👥</span>
+        <span class="mlabel">Personas</span>
+      </button>
+      <button class="mnav-btn active" id="mnav-cal" onclick="switchMobileTab('cal')">
+        <span class="micon">📅</span>
+        <span class="mlabel">Calendario</span>
+      </button>
+      <button class="mnav-btn" id="mnav-fp" onclick="switchMobileTab('fp')">
+        <span class="micon">🏠</span>
+        <span class="mlabel">Plano</span>
+      </button>
+      <button class="mnav-btn" onclick="saveFile()">
+        <span class="micon">💾</span>
+        <span class="mlabel">Guardar</span>
+      </button>
+    </nav>
   </div>
 </div>
 
@@ -179,10 +326,63 @@ const FLOORCOLORS=['#888780','#5f5e5a','#444441','#73726c'];
 const ROOMCOLORS=['#534AB7','#1D9E75','#D85A30','#BA7517','#185FA5','#3B6D11','#D4537E','#0F6E56'];
 
 let people=[], tracks=[], dayW=36, cursorDay=0;
-// fpPersonStates: key = `${pid}:${trackId}:${rangeIndex}` -> {x,y}
-let fpTool='floor', fpElements=[], fpPersonStates={};
+let fpTool='room', fpElements=[], fpPersonStates={};
 let floorCount=0, roomCount=0, deleteMode=false;
-let fpZoom=1; // scale factor for floor plan
+let fpZoom=1;
+
+// ── MOBILE DETECTION ──
+const isMobile=()=>window.innerWidth<=640;
+
+function applyMobileLayout(){
+  if(!isMobile())return;
+  document.querySelectorAll('.desktop-only').forEach(e=>e.style.display='none');
+  document.querySelectorAll('.mobile-only').forEach(e=>e.style.display='flex');
+  document.getElementById('mobile-close-personas').style.display='flex';
+}
+
+function openMobilePersonas(){
+  document.getElementById('left').classList.add('mobile-open');
+}
+function closeMobilePersonas(){
+  document.getElementById('left').classList.remove('mobile-open');
+}
+
+let mobileTab='cal';
+function switchMobileTab(tab){
+  mobileTab=tab;
+  const tl=document.getElementById('timeline-panel');
+  const sp=document.getElementById('splitter');
+  const fp=document.getElementById('fp-panel');
+  if(tab==='cal'){
+    tl.style.display='flex'; sp.style.display='none'; fp.style.display='none';
+    tl.style.flex='1'; tl.style.height='';
+  } else {
+    tl.style.display='none'; sp.style.display='none'; fp.style.display='flex';
+    fp.style.flex='1'; fp.style.height='';
+  }
+  document.querySelectorAll('.mnav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('mnav-'+tab)?.classList.add('active');
+}
+
+function adjustZoom(delta){
+  const sl=document.getElementById('zoom-slider');
+  const newV=Math.max(20,Math.min(90,dayW+delta));
+  sl.value=newV; setZoom(newV);
+}
+function adjustFPZoom(delta){
+  const sl=document.getElementById('fp-zoom-slider');
+  const newV=Math.max(30,Math.min(200,Math.round(fpZoom*100)+delta));
+  sl.value=newV; setFPZoom(newV);
+}
+
+// ── TOAST ──
+let toastTimer=null;
+function showToast(msg,duration=2000){
+  const t=document.getElementById('lp-toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),duration);
+}
 
 // ── UNDO ──
 const undoStack=[];
@@ -206,6 +406,7 @@ function toggleDeleteMode(){
   deleteMode=!deleteMode;
   document.getElementById('btn-delete-range').classList.toggle('active',deleteMode);
   document.getElementById('delete-mode-bar').classList.toggle('visible',deleteMode);
+  if(deleteMode)showToast('Toca un rango para eliminarlo');
   renderTracks();
 }
 
@@ -225,33 +426,19 @@ function setupSplitter(){
   const fp=document.getElementById('fp-panel');
   const right=document.getElementById('right');
   let dragging=false, startY=0, startTH=0;
-
-  splitter.addEventListener('mousedown',e=>{
-    dragging=true; startY=e.clientY; startTH=tl.offsetHeight;
-    splitter.classList.add('dragging');
-    document.body.style.cursor='row-resize';
-    document.body.style.userSelect='none';
-  });
-  document.addEventListener('mousemove',e=>{
-    if(!dragging)return;
-    const dy=e.clientY-startY;
-    const total=right.offsetHeight;
-    const splH=splitter.offsetHeight+8;
-    const newTH=Math.max(80,Math.min(total-splH-60,startTH+dy));
-    tl.style.flex='none';
-    tl.style.height=newTH+'px';
-    fp.style.flex='1';
-  });
-  document.addEventListener('mouseup',()=>{
-    if(!dragging)return;
-    dragging=false; splitter.classList.remove('dragging');
-    document.body.style.cursor=''; document.body.style.userSelect='';
-  });
+  const startDrag=(y)=>{dragging=true;startY=y;startTH=tl.offsetHeight;splitter.classList.add('dragging');document.body.style.userSelect='none'};
+  const moveDrag=(y)=>{if(!dragging)return;const dy=y-startY;const total=right.offsetHeight;const splH=splitter.offsetHeight+8;const newTH=Math.max(80,Math.min(total-splH-60,startTH+dy));tl.style.flex='none';tl.style.height=newTH+'px';fp.style.flex='1'};
+  const endDrag=()=>{if(!dragging)return;dragging=false;splitter.classList.remove('dragging');document.body.style.cursor='';document.body.style.userSelect=''};
+  splitter.addEventListener('mousedown',e=>{startDrag(e.clientY);document.body.style.cursor='row-resize'});
+  document.addEventListener('mousemove',e=>moveDrag(e.clientY));
+  document.addEventListener('mouseup',endDrag);
+  splitter.addEventListener('touchstart',e=>{e.preventDefault();startDrag(e.touches[0].clientY)},{passive:false});
+  document.addEventListener('touchmove',e=>{if(dragging){e.preventDefault();moveDrag(e.touches[0].clientY)}},{passive:false});
+  document.addEventListener('touchend',endDrag);
 }
 
 // ── BOOT ──
 document.addEventListener('DOMContentLoaded',()=>{
-  // 1. INTENTAR CARGAR LOS DATOS INCRUSTADOS PRIMERO
   const embeddedEl = document.getElementById('embedded-data');
   if (embeddedEl && embeddedEl.textContent.trim() !== "") {
     try {
@@ -268,23 +455,23 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   }
 
-  // 2. CONFIGURAR VALORES DE INTERFAZ (ZOOM)
   if(fpZoom !== 1){
     const pct = Math.round(fpZoom * 100);
     document.getElementById('fp-zoom-slider').value = pct;
     document.getElementById('fp-zoom-val').textContent = pct + '%';
+    document.getElementById('fp-zoom-val-m').textContent = pct + '%';
     document.getElementById('fp-canvas').style.transform = `scale(${fpZoom})`;
   }
 
-  // 3. REDIBUJAR ABSOLUTAMENTE TODO CON LOS DATOS RECUPERADOS
-  renderChips();      // Dibuja la lista lateral de personas
-  renderHeader();     // Dibuja la cabecera del calendario
-  renderTracks();     // Dibuja las líneas temporales y nombres sobre ellas
-  setupCursor();      // Configura la barra del cursor
-  setCursorDay(0);    // Posiciona el cursor en el día inicial
-  renderFPElements(); // Dibuja los pisos, habitaciones y los nombres dentro de ellos
+  applyMobileLayout();
+
+  renderChips();
+  renderHeader();
+  renderTracks();
+  setupCursor();
+  setCursorDay(0);
+  renderFPElements();
   
-  // 4. CONFIGURACIONES ADICIONALES DE EVENTOS
   document.getElementById('name-input').addEventListener('keydown',e=>{if(e.key==='Enter')addPerson()});
   document.addEventListener('click',e=>{
     if(!e.target.closest('.track-bg')&&!e.target.closest('.track-label-cell')){
@@ -296,6 +483,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   });
   updateUndoBtn(); setupFP(); setupSplitter(); updateFPLabel();
+
+  // Mobile: start in cal tab
+  if(isMobile()) switchMobileTab('cal');
 });
 
 // ── PEOPLE ──
@@ -305,18 +495,80 @@ function addPerson(){
   snapshot();
   people.push({id:Date.now(),name,color:COLORS[people.length%COLORS.length]});
   inp.value=''; renderChips();
+  if(isMobile())showToast(`"${name}" añadido. Arrástralo al calendario.`);
 }
+
+// ── TOUCH DRAG STATE ──
+let touchDragPid=null, touchDragSrc=null, touchDragTid=null, touchDragPi=null, touchDragFpkey=null;
+const ghost=document.getElementById('touch-ghost');
+
+function startTouchDragPerson(pid,name,color,src,tid,pi,fpkey){
+  touchDragPid=String(pid); touchDragSrc=src;
+  touchDragTid=tid; touchDragPi=pi; touchDragFpkey=fpkey;
+  ghost.textContent=name;
+  ghost.style.cssText=`display:block;background:${color};`;
+}
+function moveTouchGhost(x,y){
+  ghost.style.left=x+'px'; ghost.style.top=y+'px';
+}
+function endTouchDrag(){
+  ghost.style.display='none';
+  touchDragPid=null; touchDragSrc=null; touchDragTid=null; touchDragPi=null; touchDragFpkey=null;
+}
+
 function renderChips(){
   const el=document.getElementById('chips-list'); el.innerHTML='';
   people.forEach((p,pi)=>{
-    const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:4px';
+    const row=document.createElement('div'); row.style.cssText='display:flex;align-items:center;gap:6px';
     const d=document.createElement('div');
     d.className='person-chip'; d.style.cssText=`background:${p.color};flex:1`;
     d.textContent=p.name; d.draggable=true; d.dataset.pid=p.id;
+    // Desktop drag
     d.addEventListener('dragstart',e=>{e.dataTransfer.setData('pid',p.id);e.dataTransfer.setData('src','sidebar')});
+    // Touch drag from sidebar
+    d.addEventListener('touchstart',e=>{
+      e.preventDefault();
+      startTouchDragPerson(p.id,p.name,p.color,'sidebar',null,null,null);
+      moveTouchGhost(e.touches[0].clientX,e.touches[0].clientY);
+    },{passive:false});
+    d.addEventListener('touchmove',e=>{
+      e.preventDefault();
+      moveTouchGhost(e.touches[0].clientX,e.touches[0].clientY);
+    },{passive:false});
+    d.addEventListener('touchend',e=>{
+      if(!touchDragPid){endTouchDrag();return;}
+      const tx=e.changedTouches[0].clientX, ty=e.changedTouches[0].clientY;
+      // Try dropping on a track-bg
+      const el2=document.elementFromPoint(tx,ty);
+      const bg=el2?.closest('.track-bg');
+      if(bg){
+        const tid=parseInt(bg.dataset.trackid);
+        const t=tracks.find(x=>x.id===tid);
+        if(t){
+          const day=dayFromX(tx,bg);
+          snapshot(); t.persons.push({pid:touchDragPid,day}); renderTracks();
+          showToast('Persona añadida al rango');
+        }
+      }
+      endTouchDrag();
+    },{passive:false});
+
+    // Long-press to delete person
+    let lpTimer=null;
+    d.addEventListener('touchstart',()=>{lpTimer=setTimeout(()=>{
+      if(confirm(`¿Eliminar a "${p.name}"?`)){
+        snapshot();
+        tracks.forEach(t=>{t.persons=t.persons.filter(tp=>tp.pid!=p.id)});
+        Object.keys(fpPersonStates).forEach(k=>{if(k.startsWith(p.id+':'))delete fpPersonStates[k]});
+        people.splice(pi,1); renderChips(); renderTracks(); renderFPChips();
+      }
+    },600)},{passive:true});
+    d.addEventListener('touchend',()=>clearTimeout(lpTimer),{passive:true});
+    d.addEventListener('touchmove',()=>clearTimeout(lpTimer),{passive:true});
+
     const del=document.createElement('button');
     del.textContent='✕'; del.title='Eliminar persona';
-    del.style.cssText='background:none;border:none;cursor:pointer;color:var(--tm);font-size:11px;padding:2px;flex-shrink:0';
+    del.style.cssText='background:none;border:none;cursor:pointer;color:var(--tm);font-size:16px;padding:6px 4px;flex-shrink:0;min-width:32px;min-height:36px;display:flex;align-items:center;justify-content:center';
     del.addEventListener('click',()=>{
       snapshot();
       tracks.forEach(t=>{t.persons=t.persons.filter(tp=>tp.pid!=p.id)});
@@ -347,7 +599,13 @@ function renderHeader(){
     hdr.appendChild(col);
   });
 }
-function setZoom(v){dayW=v;document.getElementById('zoom-val').textContent=v+'px';renderHeader();renderTracks();updateCursor();}
+function setZoom(v){
+  dayW=v;
+  document.getElementById('zoom-val').textContent=v+'px';
+  document.getElementById('zoom-val-m').textContent=v;
+  document.getElementById('zoom-slider').value=v;
+  renderHeader();renderTracks();updateCursor();
+}
 
 // ── ROW REORDER ──
 let rowDragSrc=null;
@@ -373,13 +631,15 @@ function addTrack(){
   renderTracks();
 }
 
+// Touch range drawing state
+let touchRangeState={}; // keyed by track id
+
 function renderTracks(){
   const body=document.getElementById('tracks-body'); body.innerHTML='';
   document.getElementById('cal-track-inner').style.width=(N*dayW+110)+'px';
 
   tracks.forEach(t=>{
     const row=document.createElement('div'); row.className='track-row';
-    // label
     const lc=document.createElement('div'); lc.className='track-label-cell';
     const grip=document.createElement('span'); grip.className='drag-handle'; grip.textContent='⠿'; grip.draggable=true; grip.title='Reordenar';
     const dot=document.createElement('span'); dot.className='tl-dot'; dot.style.background=t.color;
@@ -388,12 +648,13 @@ function renderTracks(){
     ni.addEventListener('mousedown',e=>e.stopPropagation());
     ni.addEventListener('click',e=>e.stopPropagation());
     const del=document.createElement('button'); del.textContent='✕'; del.title='Eliminar línea';
-    del.style.cssText='background:none;border:none;cursor:pointer;color:var(--tm);font-size:10px;padding:0 2px;flex-shrink:0;line-height:1';
+    del.style.cssText='background:none;border:none;cursor:pointer;color:var(--tm);font-size:12px;padding:4px;flex-shrink:0;line-height:1;min-width:28px;min-height:28px;display:flex;align-items:center;justify-content:center';
     del.addEventListener('click',e=>{e.stopPropagation();snapshot();tracks=tracks.filter(x=>x.id!==t.id);renderTracks()});
     lc.appendChild(grip);lc.appendChild(dot);lc.appendChild(ni);lc.appendChild(del);
     row.appendChild(lc);
 
     const bg=document.createElement('div'); bg.className='track-bg'; bg.style.width=(N*dayW)+'px';
+    bg.dataset.trackid=t.id;
 
     // ranges
     t.ranges.forEach((rng,ri)=>{
@@ -402,55 +663,152 @@ function renderTracks(){
       fill.style.background=t.color;
       fill.style.left=(rng.start*dayW)+'px';
       fill.style.width=((rng.end-rng.start+1)*dayW)+'px';
-      fill.title=deleteMode?'Clic para eliminar':'Click derecho: eliminar | Bordes: estirar';
-      fill.addEventListener('click',e=>{if(!deleteMode)return;e.stopPropagation();snapshot();t.ranges.splice(ri,1);renderTracks()});
+      fill.title=deleteMode?'Toca para eliminar':'Mantén pulsado para eliminar | Bordes: estirar';
+
+      // Delete on tap in delete mode OR long-press
+      fill.addEventListener('click',e=>{
+        if(!deleteMode)return;
+        e.stopPropagation();snapshot();t.ranges.splice(ri,1);renderTracks();
+      });
       fill.addEventListener('contextmenu',e=>{e.preventDefault();e.stopPropagation();snapshot();t.ranges.splice(ri,1);renderTracks()});
-      // resize handles
-      const lh=document.createElement('div'); lh.className='range-handle left';
-      lh.addEventListener('mousedown',e=>{
-        e.stopPropagation();e.preventDefault();snapshot();let dr=true;
-        const onMove=ev=>{if(!dr)return;const d=Math.max(0,Math.min(rng.end,dayFromX(ev.clientX,bg)));
-          const blk=t.ranges.some((r2,i2)=>i2!==ri&&d<r2.end&&rng.end>r2.start&&d<=r2.end);
-          if(!blk){rng.start=d;fill.style.left=(d*dayW)+'px';fill.style.width=((rng.end-d+1)*dayW)+'px'}};
-        const onUp=()=>{dr=false;document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);renderTracks()};
-        document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
-      });
-      const rh=document.createElement('div'); rh.className='range-handle right';
-      rh.addEventListener('mousedown',e=>{
-        e.stopPropagation();e.preventDefault();snapshot();let dr=true;
-        const onMove=ev=>{if(!dr)return;const d=Math.max(rng.start,Math.min(N-1,dayFromX(ev.clientX,bg)));
-          const blk=t.ranges.some((r2,i2)=>i2!==ri&&d>r2.start&&rng.start<r2.end&&d>=r2.start);
-          if(!blk){rng.end=d;fill.style.width=((d-rng.start+1)*dayW)+'px'}};
-        const onUp=()=>{dr=false;document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);renderTracks()};
-        document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
-      });
-      fill.appendChild(lh);fill.appendChild(rh);
+
+      // Long-press to delete range (mobile)
+      let fillLpTimer=null;
+      fill.addEventListener('touchstart',e=>{
+        fillLpTimer=setTimeout(()=>{
+          snapshot();t.ranges.splice(ri,1);renderTracks();
+          showToast('Rango eliminado');
+        },600);
+      },{passive:true});
+      fill.addEventListener('touchend',()=>clearTimeout(fillLpTimer),{passive:true});
+      fill.addEventListener('touchmove',()=>clearTimeout(fillLpTimer),{passive:true});
+
+      // resize handles — mouse
+      const makeResizeHandle=(cls,isLeft)=>{
+        const h=document.createElement('div'); h.className='range-handle '+cls;
+        const onMoveM=ev=>{
+          if(isLeft){
+            const d=Math.max(0,Math.min(rng.end,dayFromX(ev.clientX,bg)));
+            const blk=t.ranges.some((r2,i2)=>i2!==ri&&d<r2.end&&rng.end>r2.start&&d<=r2.end);
+            if(!blk){rng.start=d;fill.style.left=(d*dayW)+'px';fill.style.width=((rng.end-d+1)*dayW)+'px'}
+          } else {
+            const d=Math.max(rng.start,Math.min(N-1,dayFromX(ev.clientX,bg)));
+            const blk=t.ranges.some((r2,i2)=>i2!==ri&&d>r2.start&&rng.start<r2.end&&d>=r2.start);
+            if(!blk){rng.end=d;fill.style.width=((d-rng.start+1)*dayW)+'px'}
+          }
+        };
+        const onUpM=(onMove)=>{document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',()=>{});renderTracks()};
+        h.addEventListener('mousedown',e=>{
+          e.stopPropagation();e.preventDefault();snapshot();let dr=true;
+          const onMove=ev=>{if(!dr)return;onMoveM(ev)};
+          const onUp=()=>{dr=false;document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);renderTracks()};
+          document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
+        });
+        // Touch resize
+        h.addEventListener('touchstart',e=>{e.stopPropagation();e.preventDefault();snapshot();},{passive:false});
+        h.addEventListener('touchmove',e=>{
+          e.stopPropagation();e.preventDefault();
+          const cx=e.touches[0].clientX;
+          if(isLeft){
+            const d=Math.max(0,Math.min(rng.end,dayFromX(cx,bg)));
+            const blk=t.ranges.some((r2,i2)=>i2!==ri&&d<r2.end&&rng.end>r2.start&&d<=r2.end);
+            if(!blk){rng.start=d;fill.style.left=(d*dayW)+'px';fill.style.width=((rng.end-d+1)*dayW)+'px'}
+          } else {
+            const d=Math.max(rng.start,Math.min(N-1,dayFromX(cx,bg)));
+            const blk=t.ranges.some((r2,i2)=>i2!==ri&&d>r2.start&&rng.start<r2.end&&d>=r2.start);
+            if(!blk){rng.end=d;fill.style.width=((d-rng.start+1)*dayW)+'px'}
+          }
+        },{passive:false});
+        h.addEventListener('touchend',()=>renderTracks(),{passive:true});
+        return h;
+      };
+      fill.appendChild(makeResizeHandle('left',true));
+      fill.appendChild(makeResizeHandle('right',false));
       bg.appendChild(fill);
     });
 
-    // person chips on track — now draggable with rangeIndex info
+    // person chips on track
     t.persons.forEach((tp,pi)=>{
       const p=people.find(x=>x.id==tp.pid); if(!p)return;
       const chip=document.createElement('div'); chip.className='track-chip';
       chip.style.background=p.color; chip.style.left=(tp.day*dayW)+'px';
       chip.draggable=true;
-      // find which range this chip falls in
       const rIdx=t.ranges.findIndex(r=>tp.day>=r.start&&tp.day<=r.end);
       const nameSpan=document.createElement('span'); nameSpan.textContent=p.name;
       const delBtn=document.createElement('span'); delBtn.className='chip-del'; delBtn.textContent='✕'; delBtn.title='Quitar';
       delBtn.addEventListener('click',e=>{e.stopPropagation();snapshot();t.persons.splice(pi,1);renderTracks()});
+      delBtn.addEventListener('touchstart',e=>{e.stopPropagation();e.preventDefault();snapshot();t.persons.splice(pi,1);renderTracks();},{passive:false});
       chip.appendChild(nameSpan);chip.appendChild(delBtn);
       chip.addEventListener('dragstart',ev=>{
         ev.dataTransfer.setData('pid',p.id);ev.dataTransfer.setData('src','track');
         ev.dataTransfer.setData('tid',t.id);ev.dataTransfer.setData('pi',pi);
-        // carry range key for floor plan placement
         ev.dataTransfer.setData('fpkey',`${p.id}:${t.id}:${rIdx}`);
       });
       chip.addEventListener('mousedown',e=>e.stopPropagation());
+      // Touch drag chip from track
+      chip.addEventListener('touchstart',e=>{
+        e.preventDefault();e.stopPropagation();
+        startTouchDragPerson(p.id,p.name,p.color,'track',t.id,pi,`${p.id}:${t.id}:${rIdx}`);
+        moveTouchGhost(e.touches[0].clientX,e.touches[0].clientY);
+      },{passive:false});
+      chip.addEventListener('touchmove',e=>{
+        e.preventDefault();
+        moveTouchGhost(e.touches[0].clientX,e.touches[0].clientY);
+      },{passive:false});
+      chip.addEventListener('touchend',e=>{
+        if(!touchDragPid){endTouchDrag();return;}
+        const tx=e.changedTouches[0].clientX, ty=e.changedTouches[0].clientY;
+        // Check if dropped on fp-viewport
+        const fpVP=document.getElementById('fp-viewport');
+        const fpR=fpVP.getBoundingClientRect();
+        if(tx>=fpR.left&&tx<=fpR.right&&ty>=fpR.top&&ty<=fpR.bottom){
+          const cx=(tx-fpR.left)/fpZoom-20, cy=(ty-fpR.top)/fpZoom-12;
+          snapshot();
+          if(touchDragFpkey){
+            propagateFPPosition(touchDragFpkey,cx,cy);
+            const parts=touchDragFpkey.split(':');
+            const targetTrack=tracks.find(x=>x.id===parseInt(parts[1]));
+            if(targetTrack&&targetTrack.ranges[parseInt(parts[2])]!==undefined)
+              setCursorDay(targetTrack.ranges[parseInt(parts[2])].start);
+            if(isMobile())switchMobileTab('fp');
+          }
+          renderFPChips();
+          showToast('Persona colocada en el plano');
+        } else {
+          // dropped on another track-bg?
+          const el2=document.elementFromPoint(tx,ty);
+          const targetBg=el2?.closest('.track-bg');
+          if(targetBg){
+            const targetTid=parseInt(targetBg.dataset.trackid);
+            const targetT=tracks.find(x=>x.id===targetTid);
+            if(targetT){
+              snapshot();
+              if(touchDragSrc==='track'&&touchDragTid){
+                const origT=tracks.find(x=>x.id===parseInt(touchDragTid));
+                if(origT)origT.persons.splice(touchDragPi,1);
+              }
+              const day=dayFromX(tx,targetBg);
+              targetT.persons.push({pid:touchDragPid,day});
+              renderTracks();
+            }
+          }
+        }
+        endTouchDrag();
+      },{passive:false});
       bg.appendChild(chip);
     });
 
-    // click-to-range
+    // Touch to draw range (two-tap system same as click on desktop)
+    bg.addEventListener('touchstart',e=>{
+      // handled by fills/chips; only act if touch is on empty bg
+      // detect if tapped on a fill
+      const target=e.target;
+      if(target!==bg&&!target.classList.contains('range-ghost'))return;
+      if(deleteMode)return;
+      e.preventDefault();e.stopPropagation();
+    },{passive:false});
+
+    // click-to-range (works on desktop AND mobile tap since touchend fires click)
     bg.addEventListener('mousemove',e=>{
       const cs=clickState[t.id]; if(!cs)return;
       const d=dayFromX(e.clientX,bg);const lo=Math.min(cs.firstDay,d),hi=Math.max(cs.firstDay,d);
@@ -467,6 +825,7 @@ function renderTracks(){
         const anchor=document.createElement('div'); anchor.className='anchor-line'; anchor.style.background=t.color;
         anchor.style.left=(d*dayW+dayW/2-1.5)+'px'; bg.appendChild(anchor);
         clickState[t.id]={firstDay:d,anchorEl:anchor,ghostEl:null};renderHeader();
+        if(isMobile())showToast('Toca otro día para completar el rango');
       } else {
         const lo=Math.min(clickState[t.id].firstDay,d),hi=Math.max(clickState[t.id].firstDay,d);
         const ov=t.ranges.some(r=>lo<=r.end&&hi>=r.start);
@@ -508,6 +867,17 @@ function setupCursor(){
     setCursorDay(Math.max(0,Math.min(N-1,Math.floor(x/dayW))));
   });
   document.addEventListener('mouseup',()=>{drag=false});
+  // Touch drag on cursor
+  zone.addEventListener('touchstart',e=>{drag=true;e.stopPropagation();e.preventDefault();},{passive:false});
+  zone.addEventListener('touchmove',e=>{
+    if(!drag)return; e.preventDefault();
+    const inner=document.getElementById('cal-track-inner');
+    const wrap=document.getElementById('cal-track-wrap');
+    const rect=inner.getBoundingClientRect();
+    const x=e.touches[0].clientX-rect.left-110+wrap.scrollLeft;
+    setCursorDay(Math.max(0,Math.min(N-1,Math.floor(x/dayW))));
+  },{passive:false});
+  zone.addEventListener('touchend',()=>{drag=false},{passive:true});
 }
 function setCursorDay(d){cursorDay=d;updateCursor();updateFPLabel();renderFPChips()}
 function updateCursor(){
@@ -530,11 +900,11 @@ function updateFPLabel(){
 function setFPZoom(v){
   fpZoom=v/100;
   document.getElementById('fp-zoom-val').textContent=v+'%';
+  document.getElementById('fp-zoom-val-m').textContent=v+'%';
+  document.getElementById('fp-zoom-slider').value=v;
   document.getElementById('fp-canvas').style.transform=`scale(${fpZoom})`;
 }
 
-// ── KEY for fpPersonStates: pid:trackId:rangeIndex ──
-// getVisiblePersonIds now returns array of {pid, fpkey} for cursorDay
 function getVisibleSlots(){
   const slots=[];
   tracks.forEach(t=>{
@@ -555,13 +925,11 @@ let fpDraw=false,fpGhost=null,fpGs={x:0,y:0};
 function setupFP(){
   const vp=document.getElementById('fp-viewport');
   const c=document.getElementById('fp-canvas');
-
-  // size canvas generously
   c.style.width='2000px'; c.style.height='2000px';
 
+  // Mouse draw
   vp.addEventListener('mousedown',e=>{
     if(fpTool==='select')return;
-    // convert to canvas coords
     const r=vp.getBoundingClientRect();
     const cx=(e.clientX-r.left)/fpZoom, cy=(e.clientY-r.top)/fpZoom;
     fpGs={x:cx,y:cy};
@@ -589,7 +957,52 @@ function setupFP(){
     renderFPElements();
   });
 
-  // drop from sidebar or from track (with fpkey)
+  // Touch draw on fp-viewport
+  vp.addEventListener('touchstart',e=>{
+    if(touchDragPid){
+      // Someone is dragging a person chip onto the viewport
+      return;
+    }
+    if(fpTool==='select')return;
+    if(e.touches.length!==1)return;
+    e.preventDefault();
+    const r=vp.getBoundingClientRect();
+    const cx=(e.touches[0].clientX-r.left)/fpZoom, cy=(e.touches[0].clientY-r.top)/fpZoom;
+    // Check if touch started on an existing element
+    const target=document.elementFromPoint(e.touches[0].clientX,e.touches[0].clientY);
+    if(target!==vp&&target!==c&&!target.classList.contains('draw-ghost'))return;
+    fpGs={x:cx,y:cy};
+    fpGhost=document.createElement('div'); fpGhost.className='draw-ghost';
+    fpGhost.style.cssText=`left:${cx}px;top:${cy}px;width:0;height:0`;
+    c.appendChild(fpGhost); fpDraw=true;
+  },{passive:false});
+
+  vp.addEventListener('touchmove',e=>{
+    if(!fpDraw||!fpGhost)return;
+    e.preventDefault();
+    const r=vp.getBoundingClientRect();
+    const cx=(e.touches[0].clientX-r.left)/fpZoom, cy=(e.touches[0].clientY-r.top)/fpZoom;
+    fpGhost.style.left=Math.min(cx,fpGs.x)+'px'; fpGhost.style.top=Math.min(cy,fpGs.y)+'px';
+    fpGhost.style.width=Math.abs(cx-fpGs.x)+'px'; fpGhost.style.height=Math.abs(cy-fpGs.y)+'px';
+  },{passive:false});
+
+  vp.addEventListener('touchend',e=>{
+    if(!fpDraw||!fpGhost)return;
+    fpDraw=false;
+    const r=vp.getBoundingClientRect();
+    const lastT=e.changedTouches[0];
+    const cx=(lastT.clientX-r.left)/fpZoom, cy=(lastT.clientY-r.top)/fpZoom;
+    const lx=Math.min(cx,fpGs.x),ly=Math.min(cy,fpGs.y);
+    const w=Math.abs(cx-fpGs.x),h=Math.abs(cy-fpGs.y);
+    fpGhost.remove(); fpGhost=null;
+    if(w<20||h<20){showToast('Arrastra más para dibujar un elemento');return;}
+    snapshot();
+    if(fpTool==='floor'){floorCount++;fpElements.push({id:Date.now(),type:'floor',x:lx,y:ly,w,h,color:FLOORCOLORS[(floorCount-1)%FLOORCOLORS.length],name:`Piso ${floorCount}`})}
+    else if(fpTool==='room'){roomCount++;fpElements.push({id:Date.now(),type:'room',x:lx,y:ly,w,h,color:ROOMCOLORS[(roomCount-1)%ROOMCOLORS.length],name:`Hab ${roomCount}`})}
+    renderFPElements();
+  },{passive:false});
+
+  // Person drop (desktop D&D)
   vp.addEventListener('dragover',e=>{e.preventDefault();c.classList.add('drag-over-fp')});
   vp.addEventListener('dragleave',()=>c.classList.remove('drag-over-fp'));
   vp.addEventListener('drop',e=>{
@@ -600,40 +1013,26 @@ function setupFP(){
     const cx=(e.clientX-r.left)/fpZoom-20, cy=(e.clientY-r.top)/fpZoom-12;
     snapshot();
     if(src==='sidebar'){
-      // place person for all their range slots visible today
       getVisibleSlots().filter(s=>String(s.pid)===String(pid)).forEach(s=>{
         propagateFPPosition(s.fpkey,cx,cy);
       });
     } else {
-      // dragged from track chip — use fpkey
       const fpkey=e.dataTransfer.getData('fpkey');
       if(fpkey) {
         propagateFPPosition(fpkey,cx,cy);
-        
-        // --- NUEVA LÓGICA: Mover la línea azul al inicio del rango ---
-        const parts = fpkey.split(':'); // [pid, trackId, rangeIndex]
+        const parts = fpkey.split(':');
         const tId = parseInt(parts[1]);
         const rIdx = parseInt(parts[2]);
-        
-        // Buscamos la línea (track) y el rango específico de donde proviene
         const targetTrack = tracks.find(x => x.id === tId);
-        if (targetTrack && targetTrack.ranges[rIdx] !== undefined) {
-          const startDay = targetTrack.ranges[rIdx].start;
-          
-          // Movemos el cursor azul al día de inicio de ese rango
-          setCursorDay(startDay);
-        }
-        // -------------------------------------------------------------
+        if (targetTrack && targetTrack.ranges[rIdx] !== undefined)
+          setCursorDay(targetTrack.ranges[rIdx].start);
       }
     }
     renderFPChips();
   });
 }
 
-// propagate position across all days in the range identified by fpkey
-function propagateFPPosition(fpkey,x,y){
-  fpPersonStates[fpkey]={x,y};
-}
+function propagateFPPosition(fpkey,x,y){fpPersonStates[fpkey]={x,y}}
 
 function renderFPElements(){
   const c=document.getElementById('fp-canvas');
@@ -650,26 +1049,47 @@ function makeFPEl(el,c){
   lbl.className='el-label'; lbl.type='text'; lbl.value=el.name; lbl.style.color=el.color;
   lbl.addEventListener('change',e=>{snapshot();el.name=e.target.value});
   lbl.addEventListener('mousedown',e=>e.stopPropagation());
+  lbl.addEventListener('touchstart',e=>e.stopPropagation(),{passive:true});
   div.appendChild(lbl);
   div.addEventListener('contextmenu',e=>{e.preventDefault();snapshot();fpElements=fpElements.filter(x=>x.id!==el.id);renderFPElements()});
-  div.title='Click derecho: eliminar | Esquinas: redimensionar';
+  div.title='Mantén pulsado para eliminar | Esquinas: redimensionar';
+  // Long-press to delete element (mobile)
+  let divLpTimer=null;
+  div.addEventListener('touchstart',e=>{
+    if(e.target===lbl)return;
+    divLpTimer=setTimeout(()=>{
+      snapshot();fpElements=fpElements.filter(x=>x.id!==el.id);renderFPElements();
+      showToast('Elemento eliminado');
+    },700);
+  },{passive:true});
+  div.addEventListener('touchend',()=>clearTimeout(divLpTimer),{passive:true});
+  div.addEventListener('touchmove',()=>clearTimeout(divLpTimer),{passive:true});
+
   [['tl'],['tr'],['bl'],['br']].forEach(([cls])=>{
     const corner=document.createElement('div'); corner.className='fp-corner '+cls;
+    const doResize=(clientX,clientY,startX,startY,ox,oy,ow,oh)=>{
+      const dx=clientX/fpZoom-startX, dy=clientY/fpZoom-startY;
+      if(cls==='br'){el.w=Math.max(30,ow+dx);el.h=Math.max(20,oh+dy)}
+      else if(cls==='bl'){const nw=Math.max(30,ow-dx);el.x=ox+ow-nw;el.w=nw;el.h=Math.max(20,oh+dy)}
+      else if(cls==='tr'){el.w=Math.max(30,ow+dx);const nh=Math.max(20,oh-dy);el.y=oy+oh-nh;el.h=nh}
+      else{const nw=Math.max(30,ow-dx);el.x=ox+ow-nw;el.w=nw;const nh=Math.max(20,oh-dy);el.y=oy+oh-nh;el.h=nh}
+      div.style.left=el.x+'px';div.style.top=el.y+'px';div.style.width=el.w+'px';div.style.height=el.h+'px';
+    };
     corner.addEventListener('mousedown',e=>{
       e.stopPropagation();e.preventDefault();snapshot();
       const startX=e.clientX/fpZoom,startY=e.clientY/fpZoom;
       const ox=el.x,oy=el.y,ow=el.w,oh=el.h;
-      const onMove=ev=>{
-        const dx=ev.clientX/fpZoom-startX, dy=ev.clientY/fpZoom-startY;
-        if(cls==='br'){el.w=Math.max(30,ow+dx);el.h=Math.max(20,oh+dy)}
-        else if(cls==='bl'){const nw=Math.max(30,ow-dx);el.x=ox+ow-nw;el.w=nw;el.h=Math.max(20,oh+dy)}
-        else if(cls==='tr'){el.w=Math.max(30,ow+dx);const nh=Math.max(20,oh-dy);el.y=oy+oh-nh;el.h=nh}
-        else{const nw=Math.max(30,ow-dx);el.x=ox+ow-nw;el.w=nw;const nh=Math.max(20,oh-dy);el.y=oy+oh-nh;el.h=nh}
-        div.style.left=el.x+'px';div.style.top=el.y+'px';div.style.width=el.w+'px';div.style.height=el.h+'px';
-      };
+      const onMove=ev=>doResize(ev.clientX,ev.clientY,startX,startY,ox,oy,ow,oh);
       const onUp=()=>{document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp)};
       document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);
     });
+    corner.addEventListener('touchstart',e=>{
+      e.stopPropagation();e.preventDefault();snapshot();
+      const startX=e.touches[0].clientX/fpZoom,startY=e.touches[0].clientY/fpZoom;
+      const ox=el.x,oy=el.y,ow=el.w,oh=el.h;
+      corner.ontouchmove=ev=>{ev.preventDefault();doResize(ev.touches[0].clientX,ev.touches[0].clientY,startX,startY,ox,oy,ow,oh)};
+      corner.ontouchend=()=>{corner.ontouchmove=null;corner.ontouchend=null};
+    },{passive:false});
     div.appendChild(corner);
   });
   c.appendChild(div);
@@ -684,16 +1104,25 @@ function renderFPChips(){
     const pos=fpPersonStates[fpkey]; if(!pos)return;
     const d=document.createElement('div'); d.className='fp-chip';
     d.style.cssText=`left:${pos.x}px;top:${pos.y}px;background:${p.color}`;
-    // show range name hint in title
     const parts=fpkey.split(':');
     const t=tracks.find(x=>String(x.id)===parts[1]);
     const rng=t?.ranges[parseInt(parts[2])];
     const rLabel=rng?` [${days[rng.start]?.d}/${MNAME[days[rng.start]?.m]}–${days[rng.end]?.d}/${MNAME[days[rng.end]?.m]}]`:'';
-    d.textContent=p.name; d.title=`${p.name}${rLabel} — Click derecho: quitar`;
+    d.textContent=p.name; d.title=`${p.name}${rLabel}`;
     makeDraggableFP(d,fpkey);
     d.addEventListener('contextmenu',e=>{
       e.preventDefault();snapshot();delete fpPersonStates[fpkey];renderFPChips();
     });
+    // Long-press to remove from floor plan (mobile)
+    let fpChipLpTimer=null;
+    d.addEventListener('touchstart',e=>{
+      fpChipLpTimer=setTimeout(()=>{
+        snapshot();delete fpPersonStates[fpkey];renderFPChips();
+        showToast('Persona quitada del plano');
+      },600);
+    },{passive:true});
+    d.addEventListener('touchend',()=>clearTimeout(fpChipLpTimer),{passive:true});
+    d.addEventListener('touchmove',()=>clearTimeout(fpChipLpTimer),{passive:true});
     c.appendChild(d);
   });
 }
@@ -713,6 +1142,22 @@ function makeDraggableFP(el,fpkey){
     fpPersonStates[fpkey]={x:nx,y:ny};
   });
   document.addEventListener('mouseup',()=>{drag=false});
+  // Touch drag chip inside floor plan
+  el.addEventListener('touchstart',e=>{
+    e.stopPropagation();e.preventDefault();
+    drag=true;
+    const r=el.getBoundingClientRect();
+    ox=(e.touches[0].clientX-r.left)/fpZoom;oy=(e.touches[0].clientY-r.top)/fpZoom;
+  },{passive:false});
+  el.addEventListener('touchmove',e=>{
+    if(!drag)return; e.preventDefault();e.stopPropagation();
+    const vp=document.getElementById('fp-viewport').getBoundingClientRect();
+    const nx=Math.max(0,(e.touches[0].clientX-vp.left)/fpZoom-ox);
+    const ny=Math.max(0,(e.touches[0].clientY-vp.top)/fpZoom-oy);
+    el.style.left=nx+'px';el.style.top=ny+'px';
+    fpPersonStates[fpkey]={x:nx,y:ny};
+  },{passive:false});
+  el.addEventListener('touchend',()=>{drag=false},{passive:true});
 }
 
 function setTool(t){
@@ -727,11 +1172,8 @@ function clearFloor(){
 }
 
 function saveFile(){
-  // 1. Recopilar todos los datos actuales de la aplicación en vivo
   const data = { people, tracks, fpElements, fpPersonStates, floorCount, roomCount, fpZoom };
   const json = JSON.stringify(data);
-  
-  // 2. Buscar o crear el contenedor interno para los datos incrustados
   let edEl = document.getElementById('embedded-data');
   if (!edEl) {
     edEl = document.createElement('script');
@@ -739,21 +1181,13 @@ function saveFile(){
     edEl.type = 'application/json';
     document.body.appendChild(edEl);
   }
-  
-  // 3. Actualizar su contenido con el nuevo JSON estructurado
   edEl.textContent = json;
-  
-  // 4. Capturar el HTML completo y actual de la página entera
   const htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
-  
-  // 5. Generar el archivo limpio para su descarga inmediata
   const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'planificador_vacaciones.html';
   a.click();
-  
-  // Limpiar memoria del navegador
   URL.revokeObjectURL(a.href);
 }
 
@@ -767,7 +1201,7 @@ function loadFile(e){
       if(file.name.endsWith('.html')||file.name.endsWith('.htm')){
         const CS='<'+'/script>';
         const EDopen='<'+'script id="embedded-data" type="application/json">';
-        const pat=new RegExp(EDopen.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([\s\S]*?)'+CS.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
+        const pat=new RegExp(EDopen.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([\\s\\S]*?)'+CS.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
         const match=text.match(pat);
         if(!match)throw new Error('No se encontraron datos en el HTML');
         d=JSON.parse(match[1]);
@@ -779,6 +1213,7 @@ function loadFile(e){
         fpZoom=d.fpZoom;const pct=Math.round(fpZoom*100);
         document.getElementById('fp-zoom-slider').value=pct;
         document.getElementById('fp-zoom-val').textContent=pct+'%';
+        document.getElementById('fp-zoom-val-m').textContent=pct+'%';
         document.getElementById('fp-canvas').style.transform='scale('+fpZoom+')';
       }
       renderChips();renderHeader();renderTracks();renderFPElements();updateFPLabel();
@@ -786,11 +1221,6 @@ function loadFile(e){
   };
   reader.readAsText(file);e.target.value='';
 }
-
-
-
 </script>
-
-
 
 <script id="embedded-data" type="application/json">{"people":[{"id":1782578452187,"name":"mama","color":"#7F77DD"},{"id":1782578453540,"name":"papa","color":"#1D9E75"},{"id":1782596050832,"name":"Miguel","color":"#D85A30"},{"id":1782596053020,"name":"Marta","color":"#D4537E"}],"tracks":[{"id":1782578454828,"name":"Mama & papa","color":"#D4537E","ranges":[{"start":1,"end":26}],"persons":[{"pid":"1782578452187","day":3},{"pid":"1782578453540","day":7}]},{"id":1782596055576,"name":"Miguel & Familia","color":"#378ADD","ranges":[{"start":1,"end":8}],"persons":[{"pid":"1782596050832","day":4},{"pid":"1782596053020","day":2}]}],"fpElements":[{"id":1782578467818,"type":"floor","x":52.5,"y":47.5,"w":604,"h":290,"color":"#888780","name":"Piso 1"},{"id":1782578470437,"type":"room","x":347.5,"y":78.5,"w":166,"h":138,"color":"#534AB7","name":"Hab 1"},{"id":1782596096340,"type":"room","x":82.5,"y":75.5,"w":185,"h":139,"color":"#1D9E75","name":"Hab 2"}],"fpPersonStates":{"1782578452187:1782578454828:0":{"x":402,"y":146},"1782578453540:1782578454828:0":{"x":384,"y":179},"1782596053020:1782596055576:0":{"x":108.5,"y":118.5},"1782596050832:1782596055576:0":{"x":180.5,"y":138.5}},"floorCount":1,"roomCount":2,"fpZoom":1}</script></body></html>
