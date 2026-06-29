@@ -51,7 +51,7 @@
         /* Lateral de Nombres */
         .lateral-nombres {
             width: 230px;
-            min-width: 0;
+            min-width: 50px;
             max-width: 50vw;
             height: 100%;
             background: #fff;
@@ -62,7 +62,7 @@
             z-index: 40;
             position: relative;
         }
-        .lateral-nombres.oculto { width: 0 !important; border-right: none; }
+        .lateral-nombres.oculto { width: 0 !important; min-width: 0 !important; border-right: none; }
         
         .lateral-nombres input, .columna-fija-mandos input {
             background: transparent !important;
@@ -74,11 +74,12 @@
             width: 80%;
         }
 
+        /* Área táctil incrementada para el resizer horizontal */
         .resizer-horizontal {
             position: absolute;
-            right: -2px;
+            right: -12px;
             top: 0;
-            width: 12px;
+            width: 24px;
             height: 100%;
             cursor: ew-resize;
             z-index: 50;
@@ -87,7 +88,7 @@
         .resizer-horizontal::after {
             content: '';
             position: absolute;
-            left: 4px;
+            left: 10px;
             width: 4px;
             height: 100%;
             background: #4a5568;
@@ -207,7 +208,6 @@
             overflow: visible;
         }
 
-        /* CAMBIO CSS: La línea azul ahora cruza de arriba a abajo toda la sección */
         .linea-temporal-azul {
             position: absolute;
             top: 5px;
@@ -285,6 +285,7 @@
             width: 100%;
             height: 100%;
             align-items: center;
+            order: 2;
         }
         .tag-nombre-rango {
             background: rgba(255, 255, 255, 0.9);
@@ -301,23 +302,29 @@
         /* Plano */
         .seccion-plano {
             height: 240px;
-            min-height: 0;
-            max-height: 100vh;
+            min-height: 40px;
+            max-height: calc(100vh - 100px);
             background: #e9ecef;
             border-top: 4px solid #4a5568;
             position: relative;
             display: flex;
             flex-direction: column;
             z-index: 100;
+            transition: background 0.3s ease;
         }
-        .seccion-plano.oculto { height: 0 !important; border-top: none; overflow: hidden; }
+        .seccion-plano.oculto { height: 0 !important; min-height: 0 !important; border-top: none; overflow: hidden; }
         
+        .seccion-plano.modo-vinculacion-activo {
+            background: #fff3cd;
+            box-shadow: inset 0 0 15px rgba(255, 193, 7, 0.5);
+        }
+
         .resizer-vertical {
             position: absolute;
-            top: -6px;
+            top: -10px;
             left: 0;
             width: 100%;
-            height: 14px;
+            height: 20px;
             cursor: ns-resize;
             z-index: 110;
             background: transparent;
@@ -325,7 +332,7 @@
         .resizer-vertical::after {
             content: '';
             position: absolute;
-            top: 4px;
+            top: 8px;
             width: 100%;
             height: 4px;
             background: #4a5568;
@@ -366,11 +373,30 @@
             border: 2px solid;
             box-sizing: border-box;
             padding: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
         .objeto-plano.tipo-piso { background: rgba(0, 123, 255, 0.12); border-color: #007bff; z-index: 1; }
         .objeto-plano.tipo-habitacion { background: rgba(23, 162, 184, 0.2); border-color: #17a2b8; z-index: 2; }
         
-        .header-objeto { display: flex; justify-content: space-between; align-items: center; font-size: 11px; }
+        .seccion-plano.modo-vinculacion-activo .objeto-plano {
+            animation: latidoSutil 1.5s infinite ease-in-out;
+        }
+        .seccion-plano.modo-vinculacion-activo .objeto-plano.seleccionado-para-vincular {
+            background: rgba(40, 167, 69, 0.35) !important;
+            border-color: #28a745 !important;
+            box-shadow: 0 0 12px #28a745;
+            transform: scale(1.02);
+            animation: none;
+        }
+
+        @keyframes latidoSutil {
+            0% { opacity: 0.8; }
+            50% { opacity: 1; border-color: #ffc107; }
+            100% { opacity: 0.8; }
+        }
+
+        .header-objeto { display: flex; justify-content: space-between; align-items: center; font-size: 11px; pointer-events: auto; }
         .header-objeto input { background: transparent; border: none; font-weight: bold; width: 75%; }
 
         .nodo-resize {
@@ -418,6 +444,19 @@
         .header-seccion { padding: 10px; background: #f8f9fa; border-bottom: 1px solid #ddd; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .lista-items { list-style: none; overflow-y: auto; flex: 1; padding: 10px; }
         .tag-plano-dinamico { background: #ffc107; color: #000; padding: 1px 3px; border-radius: 2px; font-size: 9px; font-weight: bold; margin-right: 2px; display: inline-block; }
+
+        #banner-vinculacion {
+            display: none;
+            background: #28a745;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 11px;
+            gap: 8px;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
 <body>
@@ -444,6 +483,11 @@
                 <button class="btn-accion-top rojo" id="btn-toggle-plano" onclick="togglePanel('plano')">Ocultar Plano</button>
                 <div style="border-left: 1px solid #555; height: 18px; margin: 0 4px;"></div>
                 <button class="btn-accion-top" onclick="agregarLinea()">+ Añadir Línea</button>
+                
+                <div id="banner-vinculacion">
+                    <span>Modo Vincular Activo: Toca las habitaciones</span>
+                    <button onclick="finalizarVinculacionTactil()" style="background:white; color:#28a745; border:none; padding:2px 6px; border-radius:3px; font-weight:bold; cursor:pointer;">Listo ✔</button>
+                </div>
             </div>
 
             <div class="seccion-calendario" id="seccion-calendario">
@@ -471,7 +515,7 @@
             <div class="seccion-plano" id="panel-plano">
                 <div class="resizer-vertical" id="resizer-plano"></div>
                 <div class="cabecera-plano">
-                    <strong>Plano Espacial (Pellizcar para Zoom del Plano)</strong>
+                    <strong id="titulo-plano">Plano Espacial (Pellizcar para Zoom del Plano)</strong>
                     <div>
                         <button id="btn-herramienta-piso" onclick="setHerramienta('piso')" style="padding:2px 6px; font-size:11px;">+ Modo Piso</button>
                         <button id="btn-herramienta-hab" onclick="setHerramienta('habitacion')" style="padding:2px 6px; font-size:11px;">+ Modo Habitación</button>
@@ -491,25 +535,34 @@
         let colorIndiceGlobal = 0, mandosOcultados = false;
         let nombreArrastradoTemporal = ""; 
 
+        let rangoEnProcesoDeVinculacion = null;
+        let destinosTemporalesSeleccionados = [];
+
         function togglePanel(tipo) {
             if(tipo === 'nombres') {
                 const p = document.getElementById('panel-izquierdo');
                 const btn = document.getElementById('btn-toggle-nombres');
-                const esOculto = p.classList.toggle('oculto');
-                btn.innerText = esOculto ? "Mostrar Nombres" : "Ocultar Nombres";
+                if(p && btn) {
+                    const esOculto = p.classList.toggle('oculto');
+                    btn.innerText = esOculto ? "Mostrar Nombres" : "Ocultar Nombres";
+                }
             } else if(tipo === 'plano') {
                 const p = document.getElementById('panel-plano');
                 const btn = document.getElementById('btn-toggle-plano');
-                const esOculto = p.classList.toggle('oculto');
-                btn.innerText = esOculto ? "Mostrar Plano" : "Ocultar Plano";
-                btn.className = esOculto ? "btn-accion-top" : "btn-accion-top rojo";
+                if(p && btn) {
+                    const esOculto = p.classList.toggle('oculto');
+                    btn.innerText = esOculto ? "Mostrar Plano" : "Ocultar Plano";
+                    btn.className = esOculto ? "btn-accion-top" : "btn-accion-top rojo";
+                }
             }
             setTimeout(actualizarGraficaLineaAzul, 100);
         }
 
         function toggleMandosLineas() {
             mandosOcultados = !mandosOcultados;
-            document.getElementById('btn-toggle-mandos').innerText = mandosOcultados ? "Mostrar Mandos Líneas" : "Ocultar Mandos Líneas";
+            const btn = document.getElementById('btn-toggle-mandos');
+            if(btn) btn.innerText = mandosOcultados ? "Mostrar Mandos Líneas" : "Ocultar Mandos Líneas";
+            
             document.querySelectorAll('.columna-fija-mandos').forEach(m => {
                 if(mandosOcultados) m.classList.add('ocultar-mandos');
                 else m.classList.remove('ocultar-mandos');
@@ -527,12 +580,14 @@
             diasDelRango.push(new Date(fInicio));
             fInicio.setDate(fInicio.getDate() + 1);
         }
-        diasDelRango.forEach(f => {
-            const c = document.createElement('div');
-            c.className = 'dia-celda';
-            c.innerHTML = `<strong>${f.getDate()}</strong><br>${f.toLocaleString('es-ES', {month: 'short'})}`;
-            cabecera.appendChild(c);
-        });
+        if(cabecera) {
+            diasDelRango.forEach(f => {
+                const c = document.createElement('div');
+                c.className = 'dia-celda';
+                c.innerHTML = `<strong>${f.getDate()}</strong><br>${f.toLocaleString('es-ES', {month: 'short'})}`;
+                cabecera.appendChild(c);
+            });
+        }
 
         let scrollBloqueado = false;
         function sincronizarScrolls(origen) {
@@ -547,24 +602,26 @@
         }
 
         // --- ZOOM CALENDARIO (PELLIZCO) ---
-        let anchoCeldaActual = 70, toqueDistanciaInicial = 0;
+        let anchoCeldaActual = 50, toqueDistanciaInicial = 0; 
         const seccionCalendario = document.getElementById('seccion-calendario');
 
-        seccionCalendario.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) toqueDistanciaInicial = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-        }, { passive: true });
+        if(seccionCalendario) {
+            seccionCalendario.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) toqueDistanciaInicial = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            }, { passive: true });
 
-        seccionCalendario.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2 && toqueDistanciaInicial > 0) {
-                e.preventDefault();
-                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-                const delta = dist - toqueDistanciaInicial;
-                if(Math.abs(delta) > 3) { cambiarZoom(delta > 0 ? 4 : -4); toqueDistanciaInicial = dist; }
-            }
-        }, { passive: false });
+            seccionCalendario.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2 && toqueDistanciaInicial > 0) {
+                    e.preventDefault();
+                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    const delta = dist - toqueDistanciaInicial;
+                    if(Math.abs(delta) > 3) { cambiarZoom(delta > 0 ? 3 : -3); toqueDistanciaInicial = dist; }
+                }
+            }, { passive: false });
+        }
 
         function cambiarZoom(v) {
-            anchoCeldaActual = Math.max(25, Math.min(160, anchoCeldaActual + v));
+            anchoCeldaActual = Math.max(20, Math.min(160, anchoCeldaActual + v));
             document.querySelectorAll('.dia-celda').forEach(c => {
                 c.style.minWidth = `${anchoCeldaActual}px`;
                 c.style.width = `${anchoCeldaActual}px`;
@@ -583,6 +640,7 @@
 
         function agregarNombre() {
             const lista = document.getElementById('lista-nombres');
+            if(!lista) return;
             const id = Date.now(), li = document.createElement('li');
             li.className = 'item-nombre'; li.draggable = true; li.id = `nombre-${id}`;
             li.innerHTML = `<input type="text" value="Persona ${lista.children.length + 1}"><button onclick="this.parentElement.remove()" class="btn-borrar-linea">×</button>`;
@@ -592,9 +650,14 @@
                 e.dataTransfer.setData('text/plain', nombreArrastradoTemporal);
             });
             lista.appendChild(li);
+
+            const input = li.querySelector('input');
+            input.focus();
+            input.select();
         }
 
         function agregarLinea() {
+            if(!contenedorLineasCompleto || !scrollCabecera) return;
             const id = Date.now(), fila = document.createElement('div');
             fila.className = 'fila-linea-reserva'; fila.id = `fila-${id}`;
             const colorAsignado = paletaColores[colorIndiceGlobal % paletaColores.length];
@@ -617,10 +680,16 @@
             `;
             contenedorLineasCompleto.appendChild(fila);
             document.getElementById(`scroll-linea-${id}`).scrollLeft = scrollCabecera.scrollLeft;
+
+            const input = fila.querySelector('.columna-fija-mandos input');
+            input.focus();
+            input.select();
         }
 
         function moverLinea(id, dir) {
+            if(!contenedorLineasCompleto) return;
             const el = document.getElementById(`fila-${id}`);
+            if(!el) return;
             if (dir === 'subir' && el.previousElementSibling) contenedorLineasCompleto.insertBefore(el, el.previousElementSibling);
             else if (dir === 'bajar' && el.nextElementSibling) contenedorLineasCompleto.insertBefore(el.nextElementSibling, el);
         }
@@ -629,6 +698,7 @@
         function gestionarClicksRango(event, lineaId, colorHex) {
             if (event.target.classList.contains('rango-creado') || event.target.classList.contains('control-borde') || event.target.closest('.tag-nombre-rango') || event.target.tagName === 'BUTTON') return;
             const zona = document.getElementById(`zona-rangos-${lineaId}`);
+            if(!zona) return;
             const rect = zona.getBoundingClientRect();
             const xLocal = event.clientX - rect.left;
             const diaIndex = Math.floor(xLocal / anchoCeldaActual);
@@ -673,14 +743,14 @@
             const rangoId = `rango-${Date.now()}`, rangoEl = document.createElement('div');
             rangoEl.className = 'rango-creado'; rangoEl.id = rangoId;
             
-            baseDatosRangos[rangoId] = { lineaId: lineaId, diaInicio: diaInicio, diaFin: diaFin, nombres: [], destinoPlano: null, color: colorHex };
+            baseDatosRangos[rangoId] = { lineaId: lineaId, diaInicio: diaInicio, diaFin: diaFin, nombres: [], destinosPlano: [], color: colorHex };
             
             rangoEl.innerHTML = `
-                <div class="control-borde" onmousedown="iniciarResizeRango(event, '${rangoId}', 'izq')" ontouchstart="iniciarResizeRango(event, '${rangoId}', 'izq')" style="width:16px; height:100%; cursor:ew-resize; background:rgba(0,0,0,0.12)"></div>
+                <div class="control-borde" onmousedown="iniciarResizeRango(event, '${rangoId}', 'izq')" ontouchstart="iniciarResizeRango(event, '${rangoId}', 'izq')" style="width:16px; height:100%; cursor:ew-resize; background:rgba(0,0,0,0.12); order: 0;"></div>
+                <button onclick="event.stopPropagation(); iniciarVinculacionTactil('${rangoId}')" style="background:#ffc107; color:black; border:none; padding:2px 4px; font-size:9px; font-weight:bold; cursor:pointer; margin-right:2px; border-radius:2px; order: 1; flex-shrink: 0;">👉 Vincular</button>
                 <div class="contenedor-nombres-rango" id="box-nombres-${rangoId}"></div>
-                <button onclick="event.stopPropagation(); enviarAPlano('${rangoId}')" style="background:#ffc107; color:black; border:none; padding:2px 4px; font-size:9px; font-weight:bold; cursor:pointer; margin-right:2px; border-radius:2px;">👉 Vincular</button>
-                <button onclick="event.stopPropagation(); delete baseDatosRangos['${rangoId}']; this.parentElement.remove();" style="background:none; border:none; color:white; font-weight:bold; cursor:pointer; margin-right:4px; font-size:14px;">×</button>
-                <div class="control-borde" onmousedown="iniciarResizeRango(event, '${rangoId}', 'der')" ontouchstart="iniciarResizeRango(event, '${rangoId}', 'der')" style="width:16px; height:100%; cursor:ew-resize; background:rgba(0,0,0,0.12)"></div>
+                <button onclick="event.stopPropagation(); delete baseDatosRangos['${rangoId}']; this.parentElement.remove();" style="background:none; border:none; color:white; font-weight:bold; cursor:pointer; margin-right:4px; font-size:14px; order: 3; flex-shrink: 0;">×</button>
+                <div class="control-borde" onmousedown="iniciarResizeRango(event, '${rangoId}', 'der')" ontouchstart="iniciarResizeRango(event, '${rangoId}', 'der')" style="width:16px; height:100%; cursor:ew-resize; background:rgba(0,0,0,0.12); order: 4;"></div>
             `;
 
             rangoEl.addEventListener('dragover', (e) => e.preventDefault());
@@ -694,7 +764,8 @@
                 }
             });
 
-            document.getElementById(`zona-rangos-${lineaId}`).appendChild(rangoEl);
+            const zona = document.getElementById(`zona-rangos-${lineaId}`);
+            if(zona) zona.appendChild(rangoEl);
             recalcularAnchosPixelesRangos();
         }
 
@@ -711,7 +782,9 @@
         }
 
         function renderizarNombresEnRango(rangoId) {
-            const box = document.getElementById(`box-nombres-${rangoId}`); box.innerHTML = '';
+            const box = document.getElementById(`box-nombres-${rangoId}`); 
+            if(!box) return;
+            box.innerHTML = '';
             baseDatosRangos[rangoId].nombres.forEach((nom, idx) => {
                 const tag = document.createElement('span'); tag.className = 'tag-nombre-rango';
                 tag.innerHTML = `${nom} <b style="color:red; margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); baseDatosRangos['${rangoId}'].nombres.splice(${idx},1); renderizarNombresEnRango('${rangoId}'); recalcularDiaPorPosicion();">x</b>`;
@@ -755,33 +828,34 @@
         const wrapperCabecera = document.getElementById('wrapper-cabecera');
         let dragAzul = false, xInternaPíxelesAzul = 0; 
 
-        ctrlAzul.onmousedown = () => dragAzul = true;
-        ctrlAzul.ontouchstart = () => dragAzul = true;
+        if(ctrlAzul) {
+            ctrlAzul.onmousedown = () => dragAzul = true;
+            ctrlAzul.ontouchstart = () => dragAzul = true;
+        }
         
         window.addEventListener('mouseup', () => { dragAzul = false; resizePlanoObj = false; });
         window.addEventListener('touchend', () => { dragAzul = false; resizePlanoObj = false; });
 
         function calcularYActualizarLineaInterna(clientX) {
+            if(!wrapperCabecera) return;
             const rectWrapper = wrapperCabecera.getBoundingClientRect();
-            // Determinamos los píxeles absolutos del canvas interno
             let xCalculada = clientX - rectWrapper.left;
             xInternaPíxelesAzul = Math.max(0, Math.min(xCalculada, rectWrapper.width));
             actualizarGraficaLineaAzul();
         }
 
-        // CAMBIO GLOBAL: Cálculo matemático exacto adaptado a su nueva jerarquía en pantalla
         function actualizarGraficaLineaAzul() {
-            const rectWrapper = wrapperCabecera.getBoundingClientRect();
+            if(!lineaAzul || !scrollCabecera) return;
+            
             const elMando = document.getElementById('mando-eje-dias');
-            if(!elMando) return;
+            const rectWrapper = wrapperCabecera ? wrapperCabecera.getBoundingClientRect() : null;
+            if(!elMando || !rectWrapper) return; // Control de seguridad anti-errores del DOM
 
             const rectMandos = elMando.getBoundingClientRect();
             let margenIzquierdoTotal = rectMandos.width + 11; 
             
-            // Renderizamos la línea restando el scroll dinámicamente
             let xVisual = (xInternaPíxelesAzul - scrollCabecera.scrollLeft) + margenIzquierdoTotal;
             
-            // Ocultado controlado si desborda la pantalla por el scroll izquierdo o derecho
             if (xVisual < margenIzquierdoTotal || xVisual > (rectWrapper.width + margenIzquierdoTotal)) {
                 lineaAzul.style.opacity = "0";
             } else {
@@ -792,6 +866,7 @@
         }
 
         function recalcularDiaPorPosicion() {
+            if(!ctrlAzul) return;
             let maximoIndex = diasDelRango.length - 1;
             let diaIndexCorrespondiente = Math.max(0, Math.min(Math.floor(xInternaPíxelesAzul / anchoCeldaActual), maximoIndex));
             let objetoFecha = diasDelRango[diaIndexCorrespondiente];
@@ -807,17 +882,47 @@
 
         // --- REDIMENSIÓN DE PANELES ---
         const resizerLateral = document.getElementById('resizer-lateral'), panelIzquierdo = document.getElementById('panel-izquierdo');
-        resizerLateral.addEventListener('mousedown', (e) => { e.preventDefault(); window.addEventListener('mousemove', resizeH); window.addEventListener('mouseup', stopResizeH); });
-        resizerLateral.addEventListener('touchstart', (e) => { window.addEventListener('touchmove', resizeHTouch); window.addEventListener('touchend', stopResizeH); });
-        function resizeH(e) { panelIzquierdo.style.width = `${e.clientX}px`; actualizarGraficaLineaAzul(); }
-        function resizeHTouch(e) { if(e.touches.length > 0) { panelIzquierdo.style.width = `${e.touches[0].clientX}px`; actualizarGraficaLineaAzul(); } }
+        if(resizerLateral) {
+            resizerLateral.addEventListener('mousedown', (e) => { e.preventDefault(); window.addEventListener('mousemove', resizeH); window.addEventListener('mouseup', stopResizeH); });
+            resizerLateral.addEventListener('touchstart', (e) => { window.addEventListener('touchmove', resizeHTouch); window.addEventListener('touchend', stopResizeH); });
+        }
+        
+        function resizeH(e) { 
+            if(!panelIzquierdo) return;
+            let w = Math.max(50, Math.min(window.innerWidth * 0.5, e.clientX));
+            panelIzquierdo.style.width = `${w}px`; 
+            actualizarGraficaLineaAzul(); 
+        }
+        function resizeHTouch(e) { 
+            if(e.touches.length > 0 && panelIzquierdo) { 
+                let w = Math.max(50, Math.min(window.innerWidth * 0.5, e.touches[0].clientX));
+                panelIzquierdo.style.width = `${w}px`; 
+                actualizarGraficaLineaAzul(); 
+            } 
+        }
         function stopResizeH() { window.removeEventListener('mousemove', resizeH); window.removeEventListener('touchmove', resizeHTouch); }
 
         const resizerPlano = document.getElementById('resizer-plano'), panelPlano = document.getElementById('panel-plano');
-        resizerPlano.addEventListener('mousedown', (e) => { e.preventDefault(); window.addEventListener('mousemove', resizeV); window.addEventListener('mouseup', stopResizeV); });
-        resizerPlano.addEventListener('touchstart', (e) => { window.addEventListener('touchmove', resizeVTouch); window.addEventListener('touchend', stopResizeV); });
-        function resizeV(e) { panelPlano.style.height = `${window.innerHeight - e.clientY}px`; }
-        function resizeVTouch(e) { if(e.touches.length > 0) panelPlano.style.height = `${window.innerHeight - e.touches[0].clientY}px`; }
+        if(resizerPlano) {
+            resizerPlano.addEventListener('mousedown', (e) => { e.preventDefault(); window.addEventListener('mousemove', resizeV); window.addEventListener('mouseup', stopResizeV); });
+            resizerPlano.addEventListener('touchstart', (e) => { window.addEventListener('touchmove', resizeVTouch); window.addEventListener('touchend', stopResizeV); });
+        }
+        
+        function resizeV(e) { 
+            if(!panelPlano) return;
+            let targetH = window.innerHeight - e.clientY;
+            if(targetH >= 40 && targetH <= (window.innerHeight - 100)) {
+                panelPlano.style.height = `${targetH}px`; 
+            }
+        }
+        function resizeVTouch(e) { 
+            if(e.touches.length > 0 && panelPlano) {
+                let targetH = window.innerHeight - e.touches[0].clientY;
+                if(targetH >= 40 && targetH <= (window.innerHeight - 100)) {
+                    panelPlano.style.height = `${targetH}px`;
+                }
+            }
+        }
         function stopResizeV() { window.removeEventListener('mousemove', resizeV); window.removeEventListener('touchmove', resizeVTouch); setTimeout(actualizarGraficaLineaAzul, 100); }
 
         // --- ZOOM PELLIZCO EN PLANO ---
@@ -825,32 +930,37 @@
         const panelCanvasPlano = document.getElementById('panel-plano');
         const moduloEscalablePlano = document.getElementById('modulo-escalable-plano');
 
-        panelCanvasPlano.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) distInicialPlano = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-        }, { passive: true });
+        if(panelCanvasPlano && moduloEscalablePlano) {
+            panelCanvasPlano.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) distInicialPlano = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            }, { passive: true });
 
-        panelCanvasPlano.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2 && distInicialPlano > 0) {
-                e.preventDefault();
-                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-                const factor = dist / distInicialPlano;
-                escalaPlano = Math.max(0.5, Math.min(2.5, escalaPlano * factor));
-                moduloEscalablePlano.style.transform = `scale(${escalaPlano})`;
-                distInicialPlano = dist;
-            }
-        }, { passive: false });
+            panelCanvasPlano.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 2 && distInicialPlano > 0) {
+                    e.preventDefault();
+                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    const factor = dist / distInicialPlano;
+                    escalaPlano = Math.max(0.5, Math.min(2.5, escalaPlano * factor));
+                    moduloEscalablePlano.style.transform = `scale(${escalaPlano})`;
+                    distInicialPlano = dist;
+                }
+            }, { passive: false });
+        }
 
-        // --- SISTEMA DEL PLANO CON RESIZE MULTI-NODO ---
+        // --- SISTEMA DEL PLANO ---
         let herramienta = null, objetosPlano = [], resizePlanoObj = false, planoTargetId = null, nodoDireccion = null, objOriginalState = {};
 
         function setHerramienta(t) {
+            if(rangoEnProcesoDeVinculacion) return;
             herramienta = t;
-            document.getElementById('btn-herramienta-piso').style.background = t === 'piso' ? '#28a745' : '#007bff';
-            document.getElementById('btn-herramienta-hab').style.background = t === 'habitacion' ? '#17a2b8' : '#007bff';
+            const btnPiso = document.getElementById('btn-herramienta-piso');
+            const btnHab = document.getElementById('btn-herramienta-hab');
+            if(btnPiso) btnPiso.style.background = t === 'piso' ? '#28a745' : '#007bff';
+            if(btnHab) btnHab.style.background = t === 'habitacion' ? '#17a2b8' : '#007bff';
         }
 
         function iniciarDibujo(e) {
-            if (!herramienta || e.target.classList.contains('nodo-resize') || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+            if (rangoEnProcesoDeVinculacion || !herramienta || !moduloEscalablePlano || e.target.classList.contains('nodo-resize') || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
             const rect = moduloEscalablePlano.getBoundingClientRect();
             const cx = e.touches ? e.touches[0].clientX : e.clientX, cy = e.touches ? e.touches[0].clientY : e.clientY;
             
@@ -883,35 +993,64 @@
         }
 
         function renderizarPlano() {
-            document.getElementById('ayuda-plano').style.display = objetosPlano.length === 0 ? 'block' : 'none';
+            const ayuda = document.getElementById('ayuda-plano');
+            if(ayuda) ayuda.style.display = objetosPlano.length === 0 ? 'block' : 'none';
+            
             document.querySelectorAll('.objeto-plano').forEach(el => el.remove());
+
+            if(!moduloEscalablePlano) return;
 
             objetosPlano.forEach(o => {
                 const el = document.createElement('div');
                 el.className = `objeto-plano tipo-${o.tipo}`; el.id = o.id;
                 el.style.cssText = `left:${o.x}px; top:${o.y}px; width:${o.w}px; height:${o.h}px;`;
+                
+                if(rangoEnProcesoDeVinculacion && destinosTemporalesSeleccionados.includes(o.id)) {
+                    el.classList.add('seleccionado-para-vincular');
+                }
+
                 el.innerHTML = `
                     <div class="header-objeto">
-                        <input type="text" value="${o.nombre}" onchange="objetosPlano.find(x=>x.id==='${o.id}').nombre=this.value">
-                        <button onclick="objetosPlano=objetosPlano.filter(x=>x.id!=='${o.id}'); renderizarPlano();" style="background:none; border:none; color:red; font-weight:bold; cursor:pointer;">×</button>
+                        <input type="text" value="${o.nombre}" onchange="objetosPlano.find(x=>x.id==='${o.id}').nombre=this.value" ${rangoEnProcesoDeVinculacion ? 'disabled' : ''}>
+                        <button onclick="event.stopPropagation(); eliminarObjetoPlano('${o.id}')" style="background:none; border:none; color:red; font-weight:bold; cursor:pointer; ${rangoEnProcesoDeVinculacion ? 'display:none;' : ''}">×</button>
                     </div>
                     <div class="lista-nombres-en-plano" id="dinamico-nombres-${o.id}"></div>
-                    <div class="nodo-resize nodo-n"  onmousedown="iniciarResizePlano(event, '${o.id}', 'n')"  ontouchstart="iniciarResizePlano(event, '${o.id}', 'n')"></div>
-                    <div class="nodo-resize nodo-s"  onmousedown="iniciarResizePlano(event, '${o.id}', 's')"  ontouchstart="iniciarResizePlano(event, '${o.id}', 's')"></div>
-                    <div class="nodo-resize nodo-e"  onmousedown="iniciarResizePlano(event, '${o.id}', 'e')"  ontouchstart="iniciarResizePlano(event, '${o.id}', 'e')"></div>
-                    <div class="nodo-resize nodo-w"  onmousedown="iniciarResizePlano(event, '${o.id}', 'w')"  ontouchstart="iniciarResizePlano(event, '${o.id}', 'w')"></div>
-                    <div class="nodo-resize nodo-nw" onmousedown="iniciarResizePlano(event, '${o.id}', 'nw')" ontouchstart="iniciarResizePlano(event, '${o.id}', 'nw')"></div>
-                    <div class="nodo-resize nodo-ne" onmousedown="iniciarResizePlano(event, '${o.id}', 'ne')" ontouchstart="iniciarResizePlano(event, '${o.id}', 'ne')"></div>
-                    <div class="nodo-resize nodo-sw" onmousedown="iniciarResizePlano(event, '${o.id}', 'sw')" ontouchstart="iniciarResizePlano(event, '${o.id}', 'sw')"></div>
-                    <div class="nodo-resize nodo-se" onmousedown="iniciarResizePlano(event, '${o.id}', 'se')" ontouchstart="iniciarResizePlano(event, '${o.id}', 'se')"></div>
+                    
+                    <div class="nodo-resize nodo-n"  style="${rangoEnProcesoDeVinculacion ? 'display:none;' : ''}" onmousedown="iniciarResizePlano(event, '${o.id}', 'n')"  ontouchstart="iniciarResizePlano(event, '${o.id}', 'n')"></div>
+                    <div class="nodo-resize nodo-s"  style="${rangoEnProcesoDeVinculacion ? 'display:none;' : ''}" onmousedown="iniciarResizePlano(event, '${o.id}', 's')"  ontouchstart="iniciarResizePlano(event, '${o.id}', 's')"></div>
+                    <div class="nodo-resize nodo-e"  style="${rangoEnProcesoDeVinculacion ? 'display:none;' : ''}" onmousedown="iniciarResizePlano(event, '${o.id}', 'e')"  ontouchstart="iniciarResizePlano(event, '${o.id}', 'e')"></div>
+                    <div class="nodo-resize nodo-w"  style="${rangoEnProcesoDeVinculacion ? 'display:none;' : ''}" onmousedown="iniciarResizePlano(event, '${o.id}', 'w')"  ontouchstart="iniciarResizePlano(event, '${o.id}', 'w')"></div>
+                    <div class="nodo-resize nodo-nw" style="${rangoEnProcesoDeVinculacion ? 'display:none;' : ''}" onmousedown="iniciarResizePlano(event, '${o.id}', 'nw')" ontouchstart="iniciarResizePlano(event, '${o.id}', 'nw')"></div>
+                    <div class="nodo-resize nodo-ne" style="${rangoEnProcesoDeVinculacion ? 'display:none;' : ''}" onmousedown="iniciarResizePlano(event, '${o.id}', 'ne')" ontouchstart="iniciarResizePlano(event, '${o.id}', 'ne')"></div>
+                    <div class="nodo-resize nodo-sw" style="${rangoEnProcesoDeVinculacion ? 'display:none;' : ''}" onmousedown="iniciarResizePlano(event, '${o.id}', 'sw')" ontouchstart="iniciarResizePlano(event, '${o.id}', 'sw')"></div>
+                    <div class="nodo-resize nodo-se" style="${rangoEnProcesoDeVinculacion ? 'display:none;' : ''}" onmousedown="iniciarResizePlano(event, '${o.id}', 'se')" ontouchstart="iniciarResizePlano(event, '${o.id}', 'se')"></div>
                 `;
+
+                el.onclick = (e) => {
+                    if(rangoEnProcesoDeVinculacion) {
+                        e.stopPropagation();
+                        gestionarSeleccionObjetoVinculacion(o.id);
+                    }
+                };
+
                 moduloEscalablePlano.appendChild(el);
             });
             recalcularDiaPorPosicion();
         }
 
+        function eliminarObjetoPlano(id) {
+            objetosPlano = objetosPlano.filter(x => x.id !== id);
+            for(let rId in baseDatosRangos) {
+                if(baseDatosRangos[rId].destinosPlano.includes(id)) {
+                    baseDatosRangos[rId].destinosPlano = baseDatosRangos[rId].destinosPlano.filter(x => x !== id);
+                }
+            }
+            renderizarPlano();
+        }
+
         let startX, startY;
         function iniciarResizePlano(e, id, direccion) {
+            if(rangoEnProcesoDeVinculacion) return;
             e.stopPropagation(); e.preventDefault();
             resizePlanoObj = true; planoTargetId = id; nodoDireccion = direccion;
             const cx = e.touches ? e.touches[0].clientX : e.clientX, cy = e.touches ? e.touches[0].clientY : e.clientY;
@@ -932,6 +1071,7 @@
             let dx = (cx - startX) / escalaPlano;
             let dy = (cy - startY) / escalaPlano;
             const obj = objetosPlano.find(o => o.id === planoTargetId);
+            if(!obj) return;
             
             let nx = objOriginalState.x, ny = objOriginalState.y, nw = objOriginalState.w, nh = objOriginalState.h;
             if (nodoDireccion.includes('e')) nw += dx; if (nodoDireccion.includes('w')) { nx += dx; nw -= dx; }
@@ -957,30 +1097,81 @@
             resizePlanoObj = false; window.removeEventListener('mousemove', moverResizePlano); window.removeEventListener('touchmove', moverResizePlano);
         }
 
-        function enviarAPlano(rangoId) {
-            if(baseDatosRangos[rangoId].nombres.length === 0 || objetosPlano.length === 0) return alert("Asigna nombres y dibuja áreas.");
-            let opciones = objetosPlano.map((o, idx) => `${idx} - ${o.nombre}`).join("\n");
-            let eleccion = prompt(`Selecciona destino:\n${opciones}`);
-            if(eleccion !== null && objetosPlano[parseInt(eleccion)]) {
-                baseDatosRangos[rangoId].destinoPlano = objetosPlano[parseInt(eleccion)].id; 
-                recalcularDiaPorPosicion();
+        // --- MOTOR DE VINCULACIÓN TÁCTIL ---
+        function iniciarVinculacionTactil(rangoId) {
+            if(baseDatosRangos[rangoId].nombres.length === 0) return alert("Asigna al menos un nombre al rango antes de vincular.");
+            if(objetosPlano.length === 0) return alert("Primero debes dibujar áreas (pisos o habitaciones) en el plano.");
+
+            const panelP = document.getElementById('panel-plano');
+            if(panelP && panelP.classList.contains('oculto')) {
+                togglePanel('plano');
             }
+
+            rangoEnProcesoDeVinculacion = rangoId;
+            destinosTemporalesSeleccionados = [...baseDatosRangos[rangoId].destinosPlano];
+
+            const pPlano = document.getElementById('panel-plano');
+            const bVinc = document.getElementById('banner-vinculacion');
+            const tPlano = document.getElementById('titulo-plano');
+            
+            if(pPlano) pPlano.classList.add('modo-vinculacion-activo');
+            if(bVinc) bVinc.style.display = 'flex';
+            if(tPlano) tPlano.innerText = "¡TOCA LAS ÁREAS DEL PLANO PARA ASOCIARLAS AL RANGO!";
+
+            renderizarPlano();
+        }
+
+        function gestionarSeleccionObjetoVinculacion(objId) {
+            const index = destinosTemporalesSeleccionados.indexOf(objId);
+            if(index > -1) {
+                destinosTemporalesSeleccionados.splice(index, 1);
+            } else {
+                destinosTemporalesSeleccionados.push(objId);
+            }
+            renderizarPlano();
+        }
+
+        function finalizarVinculacionTactil() {
+            if(!rangoEnProcesoDeVinculacion) return;
+
+            baseDatosRangos[rangoEnProcesoDeVinculacion].destinosPlano = [...destinosTemporalesSeleccionados];
+
+            const pPlano = document.getElementById('panel-plano');
+            const bVinc = document.getElementById('banner-vinculacion');
+            const tPlano = document.getElementById('titulo-plano');
+
+            if(pPlano) pPlano.classList.remove('modo-vinculacion-activo');
+            if(bVinc) bVinc.style.display = 'none';
+            if(tPlano) tPlano.innerText = "Plano Espacial (Pellizcar para Zoom del Plano)";
+
+            rangoEnProcesoDeVinculacion = null;
+            destinosTemporalesSeleccionados = [];
+
+            renderizarPlano();
         }
 
         function actualizarPlanoDinamico(diaIndexFocalizado) {
             objetosPlano.forEach(o => { const b = document.getElementById(`dinamico-nombres-${o.id}`); if(b) b.innerHTML = ''; });
             for(let rId in baseDatosRangos) {
                 let r = baseDatosRangos[rId];
-                if(diaIndexFocalizado >= r.diaInicio && diaIndexFocalizado < r.diaFin && r.destinoPlano) {
-                    const b = document.getElementById(`dinamico-nombres-${r.destinoPlano}`);
-                    if(b) r.nombres.forEach(n => { const s = document.createElement('span'); s.className = 'tag-plano-dinamico'; s.innerText = n; b.appendChild(s); });
+                if(diaIndexFocalizado >= r.diaInicio && diaIndexFocalizado < r.diaFin && r.destinosPlano && r.destinosPlano.length > 0) {
+                    r.destinosPlano.forEach(destId => {
+                        const b = document.getElementById(`dinamico-nombres-${destId}`);
+                        if(b) {
+                            r.nombres.forEach(n => { 
+                                const s = document.createElement('span'); 
+                                s.className = 'tag-plano-dinamico'; 
+                                s.innerText = n; 
+                                b.appendChild(s); 
+                            });
+                        }
+                    });
                 }
             }
         }
 
         window.addEventListener('resize', () => { actualizarGraficaLineaAzul(); });
 
-        // Configuración inicial limpia de arranque
         setTimeout(() => { 
             cambiarZoom(0); 
             xInternaPíxelesAzul = 0; 
