@@ -64,7 +64,6 @@
         }
         .lateral-nombres.oculto { width: 0 !important; border-right: none; }
         
-        /* Inputs transparentes sin fondo blanco */
         .lateral-nombres input, .columna-fija-mandos input {
             background: transparent !important;
             border: none;
@@ -129,7 +128,7 @@
         .btn-accion-top.rojo { background: #dc3545; }
         .btn-accion-top.gris { background: #6c757d; }
 
-        /* Calendario Estructurado con Scroll Vertical */
+        /* Calendario */
         .seccion-calendario {
             flex: 1;
             display: flex;
@@ -148,7 +147,7 @@
 
         .contenedor-lineas-scrollable {
             flex: 1;
-            overflow-y: auto; /* Permite scroll vertical si hay muchas líneas */
+            overflow-y: auto;
             overflow-x: hidden;
             position: relative;
         }
@@ -182,7 +181,6 @@
             border: none !important;
         }
 
-        /* Botón de borrar cruz roja con buena visibilidad */
         .btn-borrar-linea {
             background: none;
             border: none;
@@ -203,21 +201,20 @@
         }
         .scroll-horizontal-timeline::-webkit-scrollbar { display: none; }
 
-        /* Contenedor con límite estricto al final del 31 de agosto */
         .wrapper-timeline {
             position: relative;
             width: max-content;
-            overflow: hidden;
+            overflow: visible;
         }
 
-        /* LÍNEA AZUL ENCAPSULADA (No invade el plano) */
+        /* CAMBIO CSS: La línea azul ahora cruza de arriba a abajo toda la sección */
         .linea-temporal-azul {
             position: absolute;
-            top: 0;
+            top: 5px;
+            bottom: 5px;
             width: 3px;
             background: #0056b3;
             z-index: 99;
-            height: 100%;
             pointer-events: none;
         }
         .control-linea-azul {
@@ -233,7 +230,7 @@
             cursor: ew-resize;
             box-shadow: 0 2px 6px rgba(0,0,0,0.4);
             pointer-events: auto;
-            white-space: nowrap; /* Garantiza la fecha en una sola línea horizontal */
+            white-space: nowrap;
         }
 
         .guia-pre-rango {
@@ -311,7 +308,7 @@
             position: relative;
             display: flex;
             flex-direction: column;
-            z-index: 100; /* Por encima del calendario para cortar la línea azul */
+            z-index: 100;
         }
         .seccion-plano.oculto { height: 0 !important; border-top: none; overflow: hidden; }
         
@@ -416,7 +413,7 @@
             font-size: 13px;
             align-items: center;
         }
-        .item-nombre:active { opacity: 0.6; transform: scale(1.04); border: 2px dashed #007bff; }
+        .item-nombre:active { opacity: 0.7; border: 1px dashed #007bff; }
 
         .header-seccion { padding: 10px; background: #f8f9fa; border-bottom: 1px solid #ddd; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .lista-items { list-style: none; overflow-y: auto; flex: 1; padding: 10px; }
@@ -507,7 +504,7 @@
                 btn.innerText = esOculto ? "Mostrar Plano" : "Ocultar Plano";
                 btn.className = esOculto ? "btn-accion-top" : "btn-accion-top rojo";
             }
-            setTimeout(posicionarLineaAzulEnPantalla, 100);
+            setTimeout(actualizarGraficaLineaAzul, 100);
         }
 
         function toggleMandosLineas() {
@@ -517,7 +514,7 @@
                 if(mandosOcultados) m.classList.add('ocultar-mandos');
                 else m.classList.remove('ocultar-mandos');
             });
-            setTimeout(posicionarLineaAzulEnPantalla, 100);
+            setTimeout(actualizarGraficaLineaAzul, 100);
         }
 
         // --- CALENDARIO MATEMÁTICO ---
@@ -546,7 +543,7 @@
                 if (c !== origen) c.scrollLeft = origen.scrollLeft;
             });
             scrollBloqueado = false;
-            posicionarLineaAzulEnPantalla();
+            actualizarGraficaLineaAzul();
         }
 
         // --- ZOOM CALENDARIO (PELLIZCO) ---
@@ -577,7 +574,7 @@
                 w.style.width = `${nuevoAnchoTotal}px`;
             });
             recalcularAnchosPixelesRangos();
-            posicionarLineaAzulEnPantalla();
+            actualizarGraficaLineaAzul();
         }
 
         // --- GESTIÓN DE RANGOS Y LÍNEAS ---
@@ -679,11 +676,11 @@
             baseDatosRangos[rangoId] = { lineaId: lineaId, diaInicio: diaInicio, diaFin: diaFin, nombres: [], destinoPlano: null, color: colorHex };
             
             rangoEl.innerHTML = `
-                <div class="control-borde" onmousedown="iniciarResizeRango(event, '${rangoId}', 'izq')" ontouchstart="iniciarResizeRango(event, '${rangoId}', 'izq')" style="width:14px; height:100%; cursor:ew-resize; background:rgba(0,0,0,0.08)"></div>
+                <div class="control-borde" onmousedown="iniciarResizeRango(event, '${rangoId}', 'izq')" ontouchstart="iniciarResizeRango(event, '${rangoId}', 'izq')" style="width:16px; height:100%; cursor:ew-resize; background:rgba(0,0,0,0.12)"></div>
                 <div class="contenedor-nombres-rango" id="box-nombres-${rangoId}"></div>
                 <button onclick="event.stopPropagation(); enviarAPlano('${rangoId}')" style="background:#ffc107; color:black; border:none; padding:2px 4px; font-size:9px; font-weight:bold; cursor:pointer; margin-right:2px; border-radius:2px;">👉 Vincular</button>
                 <button onclick="event.stopPropagation(); delete baseDatosRangos['${rangoId}']; this.parentElement.remove();" style="background:none; border:none; color:white; font-weight:bold; cursor:pointer; margin-right:4px; font-size:14px;">×</button>
-                <div class="control-borde" onmousedown="iniciarResizeRango(event, '${rangoId}', 'der')" ontouchstart="iniciarResizeRango(event, '${rangoId}', 'der')" style="width:14px; height:100%; cursor:ew-resize; background:rgba(0,0,0,0.08)"></div>
+                <div class="control-borde" onmousedown="iniciarResizeRango(event, '${rangoId}', 'der')" ontouchstart="iniciarResizeRango(event, '${rangoId}', 'der')" style="width:16px; height:100%; cursor:ew-resize; background:rgba(0,0,0,0.12)"></div>
             `;
 
             rangoEl.addEventListener('dragover', (e) => e.preventDefault());
@@ -692,7 +689,7 @@
                 if(nombreArrastradoTemporal) {
                     baseDatosRangos[rangoId].nombres.push(nombreArrastradoTemporal);
                     renderizarNombresEnRango(rangoId);
-                    actualizarPlanoDinamico();
+                    recalcularDiaPorPosicion();
                     nombreArrastradoTemporal = ""; 
                 }
             });
@@ -717,7 +714,7 @@
             const box = document.getElementById(`box-nombres-${rangoId}`); box.innerHTML = '';
             baseDatosRangos[rangoId].nombres.forEach((nom, idx) => {
                 const tag = document.createElement('span'); tag.className = 'tag-nombre-rango';
-                tag.innerHTML = `${nom} <b style="color:red; margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); baseDatosRangos['${rangoId}'].nombres.splice(${idx},1); renderizarNombresEnRango('${rangoId}'); actualizarPlanoDinamico();">x</b>`;
+                tag.innerHTML = `${nom} <b style="color:red; margin-left:4px; cursor:pointer;" onclick="event.stopPropagation(); baseDatosRangos['${rangoId}'].nombres.splice(${idx},1); renderizarNombresEnRango('${rangoId}'); recalcularDiaPorPosicion();">x</b>`;
                 box.appendChild(tag);
             });
         }
@@ -753,9 +750,10 @@
         }
         function detenerResizeRango() { rangoEditando = null; }
 
-        // --- ARRASTRE DE LÍNEA AZUL COORDENADA ---
+        // --- ARRASTRE DE LÍNEA AZUL SÍNCRONA ---
         const ctrlAzul = document.getElementById('control-linea'), lineaAzul = document.getElementById('linea-azul');
-        let dragAzul = false, xPosicionInternaAzul = 60; 
+        const wrapperCabecera = document.getElementById('wrapper-cabecera');
+        let dragAzul = false, xInternaPíxelesAzul = 0; 
 
         ctrlAzul.onmousedown = () => dragAzul = true;
         ctrlAzul.ontouchstart = () => dragAzul = true;
@@ -763,40 +761,56 @@
         window.addEventListener('mouseup', () => { dragAzul = false; resizePlanoObj = false; });
         window.addEventListener('touchend', () => { dragAzul = false; resizePlanoObj = false; });
 
-        function calcularYActualizarLinea(clientX) {
-            const rectScroll = scrollCabecera.getBoundingClientRect();
-            let xVisualRestringido = Math.max(0, Math.min(clientX - rectScroll.left, rectScroll.width));
-            xPosicionInternaAzul = xVisualRestringido + scrollCabecera.scrollLeft;
-            posicionarLineaAzulEnPantalla();
+        function calcularYActualizarLineaInterna(clientX) {
+            const rectWrapper = wrapperCabecera.getBoundingClientRect();
+            // Determinamos los píxeles absolutos del canvas interno
+            let xCalculada = clientX - rectWrapper.left;
+            xInternaPíxelesAzul = Math.max(0, Math.min(xCalculada, rectWrapper.width));
+            actualizarGraficaLineaAzul();
         }
 
-        function posicionarLineaAzulEnPantalla() {
-            const rectScroll = scrollCabecera.getBoundingClientRect();
-            if(!rectScroll.width) return;
+        // CAMBIO GLOBAL: Cálculo matemático exacto adaptado a su nueva jerarquía en pantalla
+        function actualizarGraficaLineaAzul() {
+            const rectWrapper = wrapperCabecera.getBoundingClientRect();
+            const elMando = document.getElementById('mando-eje-dias');
+            if(!elMando) return;
 
-            let xVisual = xPosicionInternaAzul - scrollCabecera.scrollLeft;
+            const rectMandos = elMando.getBoundingClientRect();
+            let margenIzquierdoTotal = rectMandos.width + 11; 
             
-            // Restricción visual en pantalla
-            lineaAzul.style.left = `${rectScroll.left + xVisual}px`;
+            // Renderizamos la línea restando el scroll dinámicamente
+            let xVisual = (xInternaPíxelesAzul - scrollCabecera.scrollLeft) + margenIzquierdoTotal;
             
-            // Cálculo exacto coordinado con el Día real apuntado
-            let diaIndexCorrespondiente = Math.max(0, Math.min(Math.floor(xPosicionInternaAzul / anchoCeldaActual), diasDelRango.length - 1));
+            // Ocultado controlado si desborda la pantalla por el scroll izquierdo o derecho
+            if (xVisual < margenIzquierdoTotal || xVisual > (rectWrapper.width + margenIzquierdoTotal)) {
+                lineaAzul.style.opacity = "0";
+            } else {
+                lineaAzul.style.opacity = "1";
+                lineaAzul.style.left = `${xVisual}px`;
+            }
+            recalcularDiaPorPosicion();
+        }
+
+        function recalcularDiaPorPosicion() {
+            let maximoIndex = diasDelRango.length - 1;
+            let diaIndexCorrespondiente = Math.max(0, Math.min(Math.floor(xInternaPíxelesAzul / anchoCeldaActual), maximoIndex));
             let objetoFecha = diasDelRango[diaIndexCorrespondiente];
             
-            // Formato limpio en una sola línea horizontal
-            ctrlAzul.innerText = `${objetoFecha.getDate()} ${objetoFecha.toLocaleString('es-ES', {month:'short'})}`;
-            actualizarPlanoDinamico(diaIndexCorrespondiente);
+            if(objetoFecha) {
+                ctrlAzul.innerText = `${objetoFecha.getDate()} ${objetoFecha.toLocaleString('es-ES', {month:'short'})}`;
+                actualizarPlanoDinamico(diaIndexCorrespondiente);
+            }
         }
 
-        window.addEventListener('mousemove', (e) => { if (dragAzul) calcularYActualizarLinea(e.clientX); });
-        window.addEventListener('touchmove', (e) => { if (dragAzul && e.touches.length > 0) { e.preventDefault(); calcularYActualizarLinea(e.touches[0].clientX); } }, { passive: false });
+        window.addEventListener('mousemove', (e) => { if (dragAzul) calcularYActualizarLineaInterna(e.clientX); });
+        window.addEventListener('touchmove', (e) => { if (dragAzul && e.touches.length > 0) { e.preventDefault(); calcularYActualizarLineaInterna(e.touches[0].clientX); } }, { passive: false });
 
         // --- REDIMENSIÓN DE PANELES ---
         const resizerLateral = document.getElementById('resizer-lateral'), panelIzquierdo = document.getElementById('panel-izquierdo');
         resizerLateral.addEventListener('mousedown', (e) => { e.preventDefault(); window.addEventListener('mousemove', resizeH); window.addEventListener('mouseup', stopResizeH); });
         resizerLateral.addEventListener('touchstart', (e) => { window.addEventListener('touchmove', resizeHTouch); window.addEventListener('touchend', stopResizeH); });
-        function resizeH(e) { panelIzquierdo.style.width = `${e.clientX}px`; posicionarLineaAzulEnPantalla(); }
-        function resizeHTouch(e) { if(e.touches.length > 0) { panelIzquierdo.style.width = `${e.touches[0].clientX}px`; posicionarLineaAzulEnPantalla(); } }
+        function resizeH(e) { panelIzquierdo.style.width = `${e.clientX}px`; actualizarGraficaLineaAzul(); }
+        function resizeHTouch(e) { if(e.touches.length > 0) { panelIzquierdo.style.width = `${e.touches[0].clientX}px`; actualizarGraficaLineaAzul(); } }
         function stopResizeH() { window.removeEventListener('mousemove', resizeH); window.removeEventListener('touchmove', resizeHTouch); }
 
         const resizerPlano = document.getElementById('resizer-plano'), panelPlano = document.getElementById('panel-plano');
@@ -804,7 +818,7 @@
         resizerPlano.addEventListener('touchstart', (e) => { window.addEventListener('touchmove', resizeVTouch); window.addEventListener('touchend', stopResizeV); });
         function resizeV(e) { panelPlano.style.height = `${window.innerHeight - e.clientY}px`; }
         function resizeVTouch(e) { if(e.touches.length > 0) panelPlano.style.height = `${window.innerHeight - e.touches[0].clientY}px`; }
-        function stopResizeV() { window.removeEventListener('mousemove', resizeV); window.removeEventListener('touchmove', resizeVTouch); setTimeout(posicionarLineaAzulEnPantalla, 100); }
+        function stopResizeV() { window.removeEventListener('mousemove', resizeV); window.removeEventListener('touchmove', resizeVTouch); setTimeout(actualizarGraficaLineaAzul, 100); }
 
         // --- ZOOM PELLIZCO EN PLANO ---
         let escalaPlano = 1.0, distInicialPlano = 0;
@@ -893,7 +907,7 @@
                 `;
                 moduloEscalablePlano.appendChild(el);
             });
-            posicionarLineaAzulEnPantalla();
+            recalcularDiaPorPosicion();
         }
 
         let startX, startY;
@@ -949,7 +963,7 @@
             let eleccion = prompt(`Selecciona destino:\n${opciones}`);
             if(eleccion !== null && objetosPlano[parseInt(eleccion)]) {
                 baseDatosRangos[rangoId].destinoPlano = objetosPlano[parseInt(eleccion)].id; 
-                posicionarLineaAzulEnPantalla();
+                recalcularDiaPorPosicion();
             }
         }
 
@@ -964,8 +978,14 @@
             }
         }
 
-        window.addEventListener('resize', () => { posicionarLineaAzulEnPantalla(); });
-        setTimeout(() => { cambiarZoom(0); xPosicionInternaAzul = 100; posicionarLineaAzulEnPantalla(); }, 300);
+        window.addEventListener('resize', () => { actualizarGraficaLineaAzul(); });
+
+        // Configuración inicial limpia de arranque
+        setTimeout(() => { 
+            cambiarZoom(0); 
+            xInternaPíxelesAzul = 0; 
+            actualizarGraficaLineaAzul(); 
+        }, 300);
     </script>
 </body>
 </html>
