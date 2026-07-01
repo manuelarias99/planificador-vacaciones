@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Planning Vacaciones</title>
+
+    <!-- ═══════════════════════════════════════════════
+         SUPABASE SDK
+    ═══════════════════════════════════════════════ -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
             --bg: #0f1117;
@@ -28,7 +34,7 @@
             background: var(--bg); color: var(--text);
         }
 
-        /* BLOQUEO VERTICAL */
+        /* ── BLOQUEO VERTICAL ── */
         #bloqueo-vertical {
             position: fixed; top: 0; left: 0;
             width: 100vw; height: 100vh;
@@ -43,10 +49,39 @@
         #bloqueo-vertical p { color: var(--text-muted); font-size: 14px; }
         @media screen and (orientation: landscape) { #bloqueo-vertical { display: none; } }
 
-        /* LAYOUT */
+        /* ── TOAST SUPABASE ── */
+        #toast {
+            position: fixed; bottom: 16px; right: 16px; z-index: 99998;
+            background: var(--surface2); border: 1px solid var(--border);
+            color: var(--text-muted); font-size: 11px; font-weight: 600;
+            padding: 8px 14px; border-radius: 20px;
+            opacity: 0; transition: opacity 0.3s;
+            pointer-events: none; white-space: nowrap;
+        }
+        #toast.visible { opacity: 1; }
+        #toast.ok   { border-color: var(--green); color: var(--green); }
+        #toast.err  { border-color: var(--red);   color: var(--red);   }
+
+        /* ── PANTALLA DE CARGA ── */
+        #pantalla-carga {
+            position: fixed; inset: 0; z-index: 99997;
+            background: var(--bg);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 14px;
+        }
+        #pantalla-carga .spinner {
+            width: 36px; height: 36px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        #pantalla-carga p { color: var(--text-muted); font-size: 13px; }
+
+        /* ── LAYOUT ── */
         .contenedor-app { display: flex; width: 100vw; height: 100vh; overflow: hidden; position: relative; }
 
-        /* PANEL LATERAL */
+        /* ── PANEL LATERAL ── */
         .lateral-nombres {
             width: 200px; min-width: 50px; max-width: 50vw;
             height: 100%; background: var(--surface);
@@ -63,16 +98,13 @@
             position: absolute; right: -12px; top: 0;
             width: 24px; height: 100%; cursor: ew-resize; z-index: 50; background: transparent;
         }
-        .resizer-horizontal::after {
-            content: ''; position: absolute; left: 10px;
-            width: 2px; height: 100%; background: var(--border);
-        }
+        .resizer-horizontal::after { content: ''; position: absolute; left: 10px; width: 2px; height: 100%; background: var(--border); }
         .resizer-horizontal:active::after { background: var(--accent); }
 
-        /* AREA PRINCIPAL */
+        /* ── ÁREA PRINCIPAL ── */
         .area-principal { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; }
 
-        /* BARRA SUPERIOR */
+        /* ── BARRA SUPERIOR ── */
         .barra-herramientas-superior {
             background: var(--surface); border-bottom: 2px solid var(--border);
             padding: 0 10px; display: flex; gap: 6px; align-items: center;
@@ -81,16 +113,18 @@
         .btn-top {
             padding: 5px 10px; font-size: 11px; font-weight: 700;
             border: 1px solid transparent; border-radius: var(--radius-sm);
-            cursor: pointer; white-space: nowrap; transition: all 0.15s; letter-spacing: 0.01em;
+            cursor: pointer; white-space: nowrap; transition: all 0.15s;
         }
-        .btn-top.blue { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .btn-top.blue  { background: var(--accent); color: #fff; border-color: var(--accent); }
         .btn-top.ghost { background: transparent; color: var(--text-muted); border-color: var(--border); }
         .btn-top.ghost:active { background: var(--surface2); color: var(--text); }
-        .btn-top.red { background: rgba(248,113,113,0.15); color: var(--red); border-color: rgba(248,113,113,0.3); }
+        .btn-top.red   { background: rgba(248,113,113,0.15); color: var(--red); border-color: rgba(248,113,113,0.3); }
         .btn-top.red.activo { background: var(--red); color: #fff; border-color: var(--red); }
+        .btn-top.save  { background: rgba(52,211,153,0.15); color: var(--green); border-color: rgba(52,211,153,0.3); margin-left: auto; }
+        .btn-top.save:active { background: var(--green); color: #0f1117; }
         .sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
 
-        /* CALENDARIO */
+        /* ── CALENDARIO ── */
         .seccion-calendario {
             flex: 1; display: flex; flex-direction: column;
             background: var(--bg); padding: 6px;
@@ -120,7 +154,7 @@
         .scroll-horizontal-timeline::-webkit-scrollbar { display: none; }
         .wrapper-timeline { position: relative; width: max-content; overflow: visible; }
 
-        /* LÍNEA AZUL */
+        /* ── LÍNEA AZUL ── */
         .linea-temporal-azul {
             position: absolute; top: 5px; bottom: 5px;
             width: 2px; background: var(--accent); z-index: 99; pointer-events: none;
@@ -135,12 +169,12 @@
         }
         .guia-pre-rango { position: absolute; width: 2px; border-left: 2px dashed; height: 100%; top: 0; pointer-events: none; z-index: 10; }
 
-        /* DÍAS */
+        /* ── DÍAS ── */
         .contenedor-dias { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 2px; background: var(--surface); }
         .dia-celda { text-align: center; border-right: 1px solid var(--border); padding: 4px 0; font-size: 10px; color: var(--text-muted); background: var(--surface); flex-shrink: 0; }
         .dia-celda strong { color: var(--text); display: block; }
 
-        /* RANGOS */
+        /* ── RANGOS ── */
         .zona-rangos { background: rgba(255,255,255,0.03); height: 36px; position: relative; border-radius: var(--radius-sm); border: 1px solid var(--border); }
         .rango-creado {
             position: absolute; height: 100%; color: white;
@@ -151,7 +185,7 @@
         .contenedor-nombres-rango { display: flex; flex-wrap: wrap; gap: 2px; padding: 0 6px; overflow: hidden; width: 100%; height: 100%; align-items: center; order: 2; }
         .tag-nombre-rango { background: rgba(255,255,255,0.18); color: #fff; padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: 700; display: inline-flex; align-items: center; }
 
-        /* HEADER SECCIÓN */
+        /* ── PANEL LATERAL HEADER ── */
         .header-seccion { padding: 10px 12px; background: var(--surface2); border-bottom: 1px solid var(--border); font-weight: 700; font-size: 12px; color: var(--text); display: flex; justify-content: space-between; align-items: center; }
         .btn-header-add { background: var(--accent); color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
@@ -161,7 +195,7 @@
         .item-nombre { display: flex; justify-content: space-between; background: var(--surface2); border: 1px solid var(--border); padding: 7px 8px; margin-bottom: 4px; border-radius: var(--radius-sm); cursor: grab; font-size: 12px; align-items: center; transition: border-color 0.15s; }
         .item-nombre:active { opacity: 0.7; border-color: var(--accent); }
 
-        /* PLANO */
+        /* ── PLANO ── */
         .seccion-plano {
             height: 220px; min-height: 40px;
             background: var(--surface); border-top: 2px solid var(--border);
@@ -188,14 +222,14 @@
 
         .btn-herramienta { padding: 3px 8px; font-size: 10px; font-weight: 600; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.15s; }
         .btn-herramienta.activo-piso { background: rgba(108,143,255,0.2); color: var(--accent); border-color: var(--accent); }
-        .btn-herramienta.activo-hab { background: rgba(34,211,238,0.2); color: var(--teal); border-color: var(--teal); }
+        .btn-herramienta.activo-hab  { background: rgba(34,211,238,0.2);  color: var(--teal);   border-color: var(--teal);   }
 
         .canvas-plano { flex: 1; background: var(--bg); margin: 4px; border: 1px dashed var(--border); position: relative; overflow: hidden; }
         .contenedor-escalable-plano { position: absolute; width: 2000px; height: 2000px; top: 0; left: 0; transform-origin: 0 0; }
 
         .objeto-plano { position: absolute; border: 2px solid; box-sizing: border-box; padding: 8px; cursor: pointer; }
-        .objeto-plano.tipo-piso { background: rgba(108,143,255,0.08); border-color: rgba(108,143,255,0.5); z-index: 1; }
-        .objeto-plano.tipo-habitacion { background: rgba(34,211,238,0.12); border-color: rgba(34,211,238,0.6); z-index: 2; }
+        .objeto-plano.tipo-piso       { background: rgba(108,143,255,0.08); border-color: rgba(108,143,255,0.5); z-index: 1; }
+        .objeto-plano.tipo-habitacion { background: rgba(34,211,238,0.12);  border-color: rgba(34,211,238,0.6);  z-index: 2; }
 
         .header-objeto { display: flex; justify-content: space-between; align-items: center; font-size: 10px; pointer-events: auto; }
         .header-objeto input { background: transparent; border: none; font-weight: 700; width: 75%; color: var(--text); font-size: 10px; }
@@ -214,7 +248,7 @@
         .tag-plano-dinamico { background: var(--amber); color: #0f1117; padding: 1px 4px; border-radius: 3px; font-size: 8px; font-weight: 700; margin: 1px; display: inline-block; }
         .lista-nombres-en-plano { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 4px; }
 
-        /* ─── MODAL ASIGNACIÓN ─── */
+        /* ── MODAL ASIGNACIÓN ── */
         #modal-overlay {
             display: none; position: fixed; inset: 0; z-index: 99999;
             background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
@@ -229,7 +263,7 @@
         }
         .modal-header { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
         .modal-header-text h3 { font-size: 15px; font-weight: 700; }
-        .modal-header-text p { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+        .modal-header-text p  { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
         .btn-cerrar { background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted); border-radius: 50%; width: 28px; height: 28px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .modal-body { overflow-y: auto; flex: 1; padding: 12px; }
         .modal-body::-webkit-scrollbar { width: 4px; }
@@ -242,12 +276,22 @@
 
         .modal-footer { padding: 10px 14px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
         .btn-modal { padding: 9px 20px; font-size: 12px; font-weight: 700; border: none; border-radius: var(--radius-sm); cursor: pointer; }
-        .btn-modal.cancelar { background: var(--surface2); color: var(--text-muted); }
+        .btn-modal.cancelar  { background: var(--surface2); color: var(--text-muted); }
         .btn-modal.confirmar { background: var(--green); color: #0f1117; }
     </style>
 </head>
 <body>
 
+<!-- PANTALLA DE CARGA INICIAL -->
+<div id="pantalla-carga">
+    <div class="spinner"></div>
+    <p>Cargando estado guardado…</p>
+</div>
+
+<!-- TOAST DE ESTADO SUPABASE -->
+<div id="toast"></div>
+
+<!-- BLOQUEO VERTICAL -->
 <div id="bloqueo-vertical">
     <div class="icon">↻</div>
     <h2>Gira tu dispositivo</h2>
@@ -266,12 +310,13 @@
         </div>
         <div class="modal-body" id="modal-cuerpo"></div>
         <div class="modal-footer">
-            <button class="btn-modal cancelar" onclick="cerrarModal()">Cancelar</button>
+            <button class="btn-modal cancelar"  onclick="cerrarModal()">Cancelar</button>
             <button class="btn-modal confirmar" onclick="confirmarAsignacion()">Guardar ✔</button>
         </div>
     </div>
 </div>
 
+<!-- APP -->
 <div class="contenedor-app">
     <!-- PANEL IZQUIERDO -->
     <div class="lateral-nombres" id="panel-izquierdo">
@@ -287,10 +332,12 @@
     <div class="area-principal">
         <div class="barra-herramientas-superior">
             <button class="btn-top ghost" id="btn-toggle-nombres" onclick="togglePanel('nombres')">Nombres</button>
-            <button class="btn-top ghost" id="btn-toggle-mandos" onclick="toggleMandosLineas()">Mandos</button>
+            <button class="btn-top ghost" id="btn-toggle-mandos"  onclick="toggleMandosLineas()">Mandos</button>
             <button class="btn-top red activo" id="btn-toggle-plano" onclick="togglePanel('plano')">Plano ▼</button>
             <div class="sep"></div>
             <button class="btn-top blue" onclick="agregarLinea()">+ Línea</button>
+            <!-- Botón guardar manual -->
+            <button class="btn-top save" onclick="guardarEstado(true)">💾 Guardar</button>
         </div>
 
         <!-- CALENDARIO -->
@@ -300,7 +347,7 @@
             </div>
             <div class="cabecera-estatica-dias">
                 <div class="fila-linea-reserva">
-                    <div class="columna-fija-mandos" id="mando-eje-dias" style="background: var(--surface2); font-weight: 700; justify-content: center; font-size: 10px; color: var(--text-muted); border-color: var(--border);">EJE DÍAS</div>
+                    <div class="columna-fija-mandos" id="mando-eje-dias" style="background:var(--surface2);font-weight:700;justify-content:center;font-size:10px;color:var(--text-muted);border-color:var(--border);">EJE DÍAS</div>
                     <div class="scroll-horizontal-timeline" id="scroll-cabecera" onscroll="sincronizarScrolls(this)">
                         <div class="wrapper-timeline" id="wrapper-cabecera">
                             <div class="contenedor-dias" id="calendario-cabecera"></div>
@@ -318,14 +365,17 @@
             <div class="resizer-vertical" id="resizer-plano"></div>
             <div class="cabecera-plano">
                 <strong id="titulo-plano">Plano — pellizca para zoom</strong>
-                <div style="display:flex; gap:5px;">
+                <div style="display:flex;gap:5px;">
                     <button id="btn-herramienta-piso" class="btn-herramienta" onclick="setHerramienta('piso')">＋ Piso</button>
-                    <button id="btn-herramienta-hab" class="btn-herramienta" onclick="setHerramienta('habitacion')">＋ Habitación</button>
+                    <button id="btn-herramienta-hab"  class="btn-herramienta" onclick="setHerramienta('habitacion')">＋ Habitación</button>
                 </div>
             </div>
             <div class="canvas-plano" id="lienzo-plano">
-                <div class="contenedor-escalable-plano" id="modulo-escalable-plano" onmousedown="iniciarDibujo(event)" ontouchstart="iniciarDibujo(event)">
-                    <span id="ayuda-plano" style="color:var(--text-muted); position:absolute; top:60px; left:50%; transform:translateX(-50%); font-size:11px; pointer-events:none; white-space:nowrap;">Selecciona un modo y toca el plano para dibujar</span>
+                <div class="contenedor-escalable-plano" id="modulo-escalable-plano"
+                     onmousedown="iniciarDibujo(event)" ontouchstart="iniciarDibujo(event)">
+                    <span id="ayuda-plano" style="color:var(--text-muted);position:absolute;top:60px;left:50%;transform:translateX(-50%);font-size:11px;pointer-events:none;white-space:nowrap;">
+                        Selecciona un modo y toca el plano para dibujar
+                    </span>
                 </div>
             </div>
         </div>
@@ -333,442 +383,652 @@
 </div>
 
 <script>
-    const paletaColores = ['#6c8fff','#a78bfa','#34d399','#fbbf24','#f87171','#22d3ee','#fb923c','#e879f9','#4ade80','#818cf8'];
-    let colorIndiceGlobal = 0, mandosOcultados = false, nombreArrastradoTemporal = "";
-    let modalRangoId = null;
+/* ═══════════════════════════════════════════════════════════════
+   ██████  SUPABASE CONFIG  ████████████████████████████████████
+   ═══════════════════════════════════════════════════════════════
+   Cambia estos dos valores por los tuyos:
+   Project Settings → API → Project URL y anon public key
+   ═══════════════════════════════════════════════════════════════ */
+const SUPABASE_URL = 'https://rgwkjqdcttjbednezdsx.supabase.co';   // ← CAMBIA ESTO
+const SUPABASE_KEY = 'sb_publishable_MCZp7JPxO9dEqOHgi0KrTg_PlLlq8f7';          // ← CAMBIA ESTO
+/* ═══════════════════════════════════════════════════════════════ */
 
-    // --- TOGGLE PANELES ---
-    function togglePanel(tipo) {
-        if (tipo === 'nombres') {
-            const p = document.getElementById('panel-izquierdo'), btn = document.getElementById('btn-toggle-nombres');
-            if (p && btn) { const o = p.classList.toggle('oculto'); btn.innerText = o ? '◀ Nombres' : 'Nombres'; }
-        } else if (tipo === 'plano') {
-            const p = document.getElementById('panel-plano'), btn = document.getElementById('btn-toggle-plano');
-            if (p && btn) {
-                const o = p.classList.toggle('oculto');
-                btn.innerText = o ? 'Plano ▶' : 'Plano ▼';
-                if (o) btn.classList.remove('activo'); else btn.classList.add('activo');
-            }
-        }
-        setTimeout(actualizarGraficaLineaAzul, 100);
-    }
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    function toggleMandosLineas() {
-        mandosOcultados = !mandosOcultados;
-        document.getElementById('btn-toggle-mandos').innerText = mandosOcultados ? 'Mandos ▶' : 'Mandos';
-        document.querySelectorAll('.columna-fija-mandos').forEach(m => {
-            mandosOcultados ? m.classList.add('ocultar-mandos') : m.classList.remove('ocultar-mandos');
+// ── TOAST ──
+function mostrarToast(msg, tipo = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `visible ${tipo}`;
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.className = ''; }, 2500);
+}
+
+// ── GUARDAR EN SUPABASE ──
+let guardandoEnCurso = false;
+async function guardarEstado(manual = false) {
+    if (guardandoEnCurso) return;
+    guardandoEnCurso = true;
+
+    // Capturar nombres del panel lateral
+    const nombresLateral = [];
+    document.querySelectorAll('#lista-nombres .item-nombre input').forEach(inp => {
+        nombresLateral.push(inp.value);
+    });
+
+    // Capturar etiquetas de líneas (nombre de cada fila)
+    const etiquetasLineas = {};
+    document.querySelectorAll('.fila-linea-reserva').forEach(fila => {
+        const id = fila.id.replace('fila-', '');
+        const inp = fila.querySelector('.columna-fija-mandos input');
+        if (inp) etiquetasLineas[id] = inp.value;
+    });
+
+    const estado = {
+        baseDatosRangos,
+        objetosPlano,
+        anchoCeldaActual,
+        colorIndiceGlobal,
+        mandosOcultados,
+        nombresLateral,
+        etiquetasLineas,
+    };
+
+    try {
+        const { error } = await sb.from('planificador_estado').upsert({
+            id: 'estado_global',
+            datos: estado,
+            actualizado_en: new Date().toISOString(),
         });
-        setTimeout(actualizarGraficaLineaAzul, 100);
+        if (error) throw error;
+        if (manual) mostrarToast('✓ Guardado', 'ok');
+    } catch (err) {
+        console.error('Error guardando:', err);
+        mostrarToast('✗ Error al guardar', 'err');
+    } finally {
+        guardandoEnCurso = false;
     }
+}
 
-    // --- CALENDARIO ---
-    const cabecera = document.getElementById('calendario-cabecera');
-    const scrollCabecera = document.getElementById('scroll-cabecera');
-    const diasDelRango = [];
-    let fInicio = new Date(2026, 6, 23), fFin = new Date(2026, 7, 31);
-    while (fInicio <= fFin) { diasDelRango.push(new Date(fInicio)); fInicio.setDate(fInicio.getDate() + 1); }
-    if (cabecera) {
-        diasDelRango.forEach(f => {
-            const c = document.createElement('div');
-            c.className = 'dia-celda';
-            c.innerHTML = `<strong>${f.getDate()}</strong>${f.toLocaleString('es-ES', { month: 'short' })}`;
-            cabecera.appendChild(c);
-        });
-    }
+// ── CARGAR DESDE SUPABASE ──
+async function cargarEstado() {
+    try {
+        const { data, error } = await sb
+            .from('planificador_estado')
+            .select('datos')
+            .eq('id', 'estado_global')
+            .single();
 
-    let scrollBloqueado = false;
-    function sincronizarScrolls(origen) {
-        if (scrollBloqueado) return; scrollBloqueado = true;
-        document.querySelectorAll('.scroll-horizontal-timeline').forEach(c => { if (c !== origen) c.scrollLeft = origen.scrollLeft; });
-        scrollBloqueado = false; actualizarGraficaLineaAzul();
-    }
-
-    // --- ZOOM CALENDARIO ---
-    let anchoCeldaActual = 50, toqueDistanciaInicial = 0;
-    const seccionCalendario = document.getElementById('seccion-calendario');
-    if (seccionCalendario) {
-        seccionCalendario.addEventListener('touchstart', (e) => { if (e.touches.length === 2) toqueDistanciaInicial = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }, { passive: true });
-        seccionCalendario.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2 && toqueDistanciaInicial > 0) {
-                e.preventDefault();
-                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-                const delta = dist - toqueDistanciaInicial;
-                if (Math.abs(delta) > 3) { cambiarZoom(delta > 0 ? 3 : -3); toqueDistanciaInicial = dist; }
-            }
-        }, { passive: false });
-    }
-
-    function cambiarZoom(v) {
-        anchoCeldaActual = Math.max(20, Math.min(160, anchoCeldaActual + v));
-        document.querySelectorAll('.dia-celda').forEach(c => { c.style.minWidth = `${anchoCeldaActual}px`; c.style.width = `${anchoCeldaActual}px`; });
-        const w = diasDelRango.length * anchoCeldaActual;
-        document.querySelectorAll('.wrapper-timeline').forEach(wEl => { wEl.style.width = `${w}px`; });
-        recalcularAnchosPixelesRangos(); actualizarGraficaLineaAzul();
-    }
-
-    // --- GESTIÓN RANGOS ---
-    const contenedorLineasCompleto = document.getElementById('contenedor-lineas-completo');
-    let baseDatosRangos = {};
-
-    function agregarNombre() {
-        const lista = document.getElementById('lista-nombres'); if (!lista) return;
-        const id = Date.now(), li = document.createElement('li');
-        li.className = 'item-nombre'; li.draggable = true; li.id = `nombre-${id}`;
-        li.innerHTML = `<input type="text" value="Persona ${lista.children.length + 1}"><button onclick="this.parentElement.remove()" class="btn-borrar-linea">×</button>`;
-        li.addEventListener('dragstart', (e) => { nombreArrastradoTemporal = li.querySelector('input').value; e.dataTransfer.setData('text/plain', nombreArrastradoTemporal); });
-        lista.appendChild(li);
-        const inp = li.querySelector('input'); inp.focus(); inp.select();
-    }
-
-    function agregarLinea() {
-        if (!contenedorLineasCompleto || !scrollCabecera) return;
-        const id = Date.now(), fila = document.createElement('div');
-        fila.className = 'fila-linea-reserva'; fila.id = `fila-${id}`;
-        const color = paletaColores[colorIndiceGlobal % paletaColores.length]; colorIndiceGlobal++;
-        fila.innerHTML = `
-            <div class="columna-fija-mandos ${mandosOcultados ? 'ocultar-mandos' : ''}">
-                <div style="display:flex;flex-direction:column;gap:2px;">
-                    <button class="btn-mando-mini" onclick="moverLinea('${id}','subir')">▲</button>
-                    <button class="btn-mando-mini" onclick="moverLinea('${id}','bajar')">▼</button>
-                </div>
-                <input type="text" value="Línea ${contenedorLineasCompleto.children.length + 1}">
-                <button onclick="document.getElementById('fila-${id}').remove();" class="btn-borrar-linea">×</button>
-            </div>
-            <div class="scroll-horizontal-timeline" id="scroll-linea-${id}" onscroll="sincronizarScrolls(this)">
-                <div class="wrapper-timeline" style="width:${diasDelRango.length * anchoCeldaActual}px;">
-                    <div class="zona-rangos" id="zona-rangos-${id}" onclick="gestionarClicksRango(event,'${id}','${color}')"></div>
-                </div>
-            </div>`;
-        contenedorLineasCompleto.appendChild(fila);
-        document.getElementById(`scroll-linea-${id}`).scrollLeft = scrollCabecera.scrollLeft;
-        const inp = fila.querySelector('.columna-fija-mandos input'); inp.focus(); inp.select();
-    }
-
-    function moverLinea(id, dir) {
-        if (!contenedorLineasCompleto) return;
-        const el = document.getElementById(`fila-${id}`); if (!el) return;
-        if (dir === 'subir' && el.previousElementSibling) contenedorLineasCompleto.insertBefore(el, el.previousElementSibling);
-        else if (dir === 'bajar' && el.nextElementSibling) contenedorLineasCompleto.insertBefore(el.nextElementSibling, el);
-    }
-
-    let primerClick = null;
-    function gestionarClicksRango(event, lineaId, colorHex) {
-        if (event.target.classList.contains('rango-creado') || event.target.classList.contains('control-borde') || event.target.closest('.tag-nombre-rango') || event.target.tagName === 'BUTTON') return;
-        const zona = document.getElementById(`zona-rangos-${lineaId}`); if (!zona) return;
-        const rect = zona.getBoundingClientRect();
-        const diaIndex = Math.floor((event.clientX - rect.left) / anchoCeldaActual);
-        if (primerClick === null || primerClick.lineaId !== lineaId) {
-            primerClick = { lineaId, diaInicio: diaIndex };
-            const guia = document.createElement('div');
-            guia.className = 'guia-pre-rango'; guia.id = `guia-linea-${lineaId}`;
-            guia.style.left = `${diaIndex * anchoCeldaActual}px`; guia.style.borderColor = colorHex;
-            zona.appendChild(guia);
-        } else {
-            let dIn = Math.min(primerClick.diaInicio, diaIndex), dFn = Math.max(primerClick.diaInicio, diaIndex) + 1;
-            const gEx = document.getElementById(`guia-linea-${lineaId}`); if (gEx) gEx.remove();
-            if (!comprobarSuperposicion(lineaId, dIn, dFn)) dibujarRango(lineaId, dIn, dFn, colorHex);
-            else alert("Los rangos no se pueden solapar.");
-            primerClick = null;
+        if (error || !data?.datos || !Object.keys(data.datos).length) {
+            // Sin datos previos: arranque limpio
+            return;
         }
-    }
 
-    function comprobarSuperposicion(lineaId, dIn, dFn, idIgnorar = null) {
+        const e = data.datos;
+
+        // Restaurar variables globales
+        if (e.baseDatosRangos)   baseDatosRangos   = e.baseDatosRangos;
+        if (e.objetosPlano)      objetosPlano      = e.objetosPlano;
+        if (e.anchoCeldaActual)  anchoCeldaActual  = e.anchoCeldaActual;
+        if (e.colorIndiceGlobal) colorIndiceGlobal = e.colorIndiceGlobal;
+        if (e.mandosOcultados !== undefined) mandosOcultados = e.mandosOcultados;
+
+        // Restaurar nombres del panel lateral
+        if (e.nombresLateral && e.nombresLateral.length > 0) {
+            const lista = document.getElementById('lista-nombres');
+            lista.innerHTML = '';
+            e.nombresLateral.forEach(nombre => {
+                const id = Date.now() + Math.random();
+                const li = document.createElement('li');
+                li.className = 'item-nombre'; li.draggable = true;
+                li.innerHTML = `<input type="text" value="${nombre}"><button onclick="this.parentElement.remove()" class="btn-borrar-linea">×</button>`;
+                li.addEventListener('dragstart', (ev) => { nombreArrastradoTemporal = li.querySelector('input').value; ev.dataTransfer.setData('text/plain', nombreArrastradoTemporal); });
+                lista.appendChild(li);
+            });
+        }
+
+        // Restaurar estado visual de mandos
+        if (mandosOcultados) {
+            document.getElementById('btn-toggle-mandos').innerText = 'Mandos ▶';
+        }
+
+        // Aplicar zoom guardado
+        cambiarZoom(0);
+
+        // Reconstruir líneas y rangos en el DOM
+        // Agrupamos rangos por lineaId para saber qué líneas necesitamos
+        const lineasNecesarias = new Set();
         for (let rId in baseDatosRangos) {
-            let r = baseDatosRangos[rId];
-            if (r.lineaId === lineaId && rId !== idIgnorar && dIn < r.diaFin && dFn > r.diaInicio) return true;
+            lineasNecesarias.add(baseDatosRangos[rId].lineaId);
         }
-        return false;
-    }
 
-    function dibujarRango(lineaId, diaInicio, diaFin, colorHex) {
-        const rangoId = `rango-${Date.now()}`, rangoEl = document.createElement('div');
-        rangoEl.className = 'rango-creado'; rangoEl.id = rangoId;
-        rangoEl.style.background = colorHex;
-        baseDatosRangos[rangoId] = { lineaId, diaInicio, diaFin, nombres: [], destinosPlano: [], color: colorHex, asignaciones: {} };
-        rangoEl.innerHTML = `
-            <div class="control-borde" onmousedown="iniciarResizeRango(event,'${rangoId}','izq')" ontouchstart="iniciarResizeRango(event,'${rangoId}','izq')" style="width:14px;height:100%;cursor:ew-resize;background:rgba(0,0,0,0.2);order:0;border-radius:5px 0 0 5px;flex-shrink:0;"></div>
-            <button onclick="event.stopPropagation();abrirModal('${rangoId}')" style="background:rgba(251,191,36,0.25);color:#fbbf24;border:1px solid rgba(251,191,36,0.4);padding:2px 6px;font-size:9px;font-weight:700;cursor:pointer;margin-left:2px;border-radius:4px;order:1;flex-shrink:0;white-space:nowrap;">🏠 Vincular</button>
-            <div class="contenedor-nombres-rango" id="box-nombres-${rangoId}"></div>
-            <button onclick="event.stopPropagation();delete baseDatosRangos['${rangoId}'];this.parentElement.remove();" style="background:none;border:none;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;margin-right:4px;font-size:14px;order:3;flex-shrink:0;">×</button>
-            <div class="control-borde" onmousedown="iniciarResizeRango(event,'${rangoId}','der')" ontouchstart="iniciarResizeRango(event,'${rangoId}','der')" style="width:14px;height:100%;cursor:ew-resize;background:rgba(0,0,0,0.2);order:4;border-radius:0 5px 5px 0;flex-shrink:0;"></div>`;
-        rangoEl.addEventListener('dragover', (e) => e.preventDefault());
-        rangoEl.addEventListener('drop', (e) => {
-            e.preventDefault();
-            if (nombreArrastradoTemporal && !baseDatosRangos[rangoId].nombres.includes(nombreArrastradoTemporal)) {
-                baseDatosRangos[rangoId].nombres.push(nombreArrastradoTemporal);
-                renderizarNombresEnRango(rangoId); recalcularDiaPorPosicion();
+        // Crear las filas de línea que no existen en el DOM
+        lineasNecesarias.forEach(lineaId => {
+            if (!document.getElementById(`fila-${lineaId}`)) {
+                crearFilaLinea(lineaId, e.etiquetasLineas?.[lineaId] || 'Línea');
             }
-            nombreArrastradoTemporal = "";
         });
-        const zona = document.getElementById(`zona-rangos-${lineaId}`);
-        if (zona) zona.appendChild(rangoEl);
-        recalcularAnchosPixelesRangos();
-    }
 
-    function recalcularAnchosPixelesRangos() {
-        for (let rId in baseDatosRangos) {
-            let r = baseDatosRangos[rId]; const dom = document.getElementById(rId);
-            if (dom) { dom.style.left = `${r.diaInicio * anchoCeldaActual}px`; dom.style.width = `${(r.diaFin - r.diaInicio) * anchoCeldaActual}px`; }
-        }
-    }
-
-    function renderizarNombresEnRango(rangoId) {
-        const box = document.getElementById(`box-nombres-${rangoId}`); if (!box) return;
-        box.innerHTML = '';
-        baseDatosRangos[rangoId].nombres.forEach((nom, idx) => {
-            const tag = document.createElement('span'); tag.className = 'tag-nombre-rango';
-            tag.innerHTML = `${nom} <b style="color:rgba(255,255,255,0.6);margin-left:4px;cursor:pointer;" onclick="event.stopPropagation();baseDatosRangos['${rangoId}'].nombres.splice(${idx},1);renderizarNombresEnRango('${rangoId}');recalcularDiaPorPosicion();">×</b>`;
-            box.appendChild(tag);
-        });
-    }
-
-    // --- MODAL ASIGNACIÓN ---
-    function abrirModal(rangoId) {
-        const r = baseDatosRangos[rangoId];
-        if (!r) return;
-        if (r.nombres.length === 0) return alert("Arrastra personas al rango antes de vincular.");
-        if (objetosPlano.length === 0) return alert("Dibuja pisos o habitaciones en el plano primero.");
-        modalRangoId = rangoId;
-        const f0 = diasDelRango[r.diaInicio], f1 = diasDelRango[r.diaFin - 1];
-        const fmt = d => d ? `${d.getDate()} ${d.toLocaleString('es-ES',{month:'short'})}` : '';
-        document.getElementById('modal-subtitulo').textContent = `${r.nombres.length} persona${r.nombres.length > 1 ? 's' : ''} · ${fmt(f0)} – ${fmt(f1)}`;
-        const optsHTML = objetosPlano.map(o => `<option value="${o.id}">${o.tipo === 'piso' ? '🏢' : '🛏'} ${o.nombre}</option>`).join('');
-        const cuerpo = document.getElementById('modal-cuerpo'); cuerpo.innerHTML = '';
-        r.nombres.forEach(nombre => {
-            const asigActual = r.asignaciones[nombre] || '';
-            const fila = document.createElement('div'); fila.className = 'fila-asig';
-            fila.innerHTML = `<span class="fila-asig-nombre">👤 ${nombre}</span><select id="sel-${CSS.escape(nombre)}" data-nombre="${nombre}"><option value="">— Sin asignar —</option>${optsHTML}</select>`;
-            cuerpo.appendChild(fila);
-            if (asigActual) fila.querySelector('select').value = asigActual;
-        });
-        document.getElementById('modal-overlay').classList.add('visible');
-    }
-
-    function cerrarModal() { document.getElementById('modal-overlay').classList.remove('visible'); modalRangoId = null; }
-
-    function confirmarAsignacion() {
-        if (!modalRangoId) return;
-        const r = baseDatosRangos[modalRangoId];
-        const nuevasAsig = {};
-        document.querySelectorAll('#modal-cuerpo select').forEach(sel => { nuevasAsig[sel.dataset.nombre] = sel.value || null; });
-        r.asignaciones = nuevasAsig;
-        r.destinosPlano = [...new Set(Object.values(nuevasAsig).filter(Boolean))];
-        cerrarModal(); recalcularDiaPorPosicion(); renderizarPlano();
-    }
-
-    // --- RESIZE RANGOS ---
-    let rangoEditando = null, bordeEditando = null, diaInicioBase = 0, diaFinBase = 0, xSujeto = 0;
-    function iniciarResizeRango(e, rangoId, borde) {
-        e.stopPropagation(); e.preventDefault();
-        rangoEditando = rangoId; bordeEditando = borde;
-        xSujeto = e.touches ? e.touches[0].clientX : e.clientX;
-        diaInicioBase = baseDatosRangos[rangoId].diaInicio; diaFinBase = baseDatosRangos[rangoId].diaFin;
-        window.addEventListener('mousemove', moverResizeRango); window.addEventListener('mouseup', detenerResizeRango);
-        window.addEventListener('touchmove', moverResizeRango, { passive: false }); window.addEventListener('touchend', detenerResizeRango);
-    }
-    function moverResizeRango(e) {
-        if (!rangoEditando) return;
-        const cx = e.touches ? e.touches[0].clientX : e.clientX;
-        const desp = Math.round((cx - xSujeto) / anchoCeldaActual);
-        let r = baseDatosRangos[rangoEditando], nIn = r.diaInicio, nFn = r.diaFin;
-        if (bordeEditando === 'izq') nIn = Math.min(diaFinBase - 1, diaInicioBase + desp);
-        else nFn = Math.max(diaInicioBase + 1, diaFinBase + desp);
-        if (nIn >= 0 && nFn <= diasDelRango.length && !comprobarSuperposicion(r.lineaId, nIn, nFn, rangoEditando)) { r.diaInicio = nIn; r.diaFin = nFn; recalcularAnchosPixelesRangos(); }
-    }
-    function detenerResizeRango() { rangoEditando = null; window.removeEventListener('mousemove', moverResizeRango); window.removeEventListener('touchmove', moverResizeRango); }
-
-    // --- LÍNEA AZUL ---
-    const ctrlAzul = document.getElementById('control-linea'), lineaAzul = document.getElementById('linea-azul');
-    const wrapperCabecera = document.getElementById('wrapper-cabecera');
-    let dragAzul = false, xInternaPíxelesAzul = 0;
-    if (ctrlAzul) { ctrlAzul.onmousedown = () => dragAzul = true; ctrlAzul.ontouchstart = () => dragAzul = true; }
-    window.addEventListener('mouseup', () => { dragAzul = false; resizePlanoObj = false; });
-    window.addEventListener('touchend', () => { dragAzul = false; resizePlanoObj = false; });
-    function calcularYActualizarLineaInterna(clientX) {
-        if (!wrapperCabecera) return;
-        const rectW = wrapperCabecera.getBoundingClientRect();
-        xInternaPíxelesAzul = Math.max(0, Math.min(clientX - rectW.left, rectW.width));
-        actualizarGraficaLineaAzul();
-    }
-    function actualizarGraficaLineaAzul() {
-        if (!lineaAzul || !scrollCabecera) return;
-        const elMando = document.getElementById('mando-eje-dias'), rectW = wrapperCabecera ? wrapperCabecera.getBoundingClientRect() : null;
-        if (!elMando || !rectW) return;
-        const margen = elMando.getBoundingClientRect().width + 11;
-        const xVisual = (xInternaPíxelesAzul - scrollCabecera.scrollLeft) + margen;
-        if (xVisual < margen || xVisual > rectW.width + margen) lineaAzul.style.opacity = "0";
-        else { lineaAzul.style.opacity = "1"; lineaAzul.style.left = `${xVisual}px`; }
-        recalcularDiaPorPosicion();
-    }
-    function recalcularDiaPorPosicion() {
-        if (!ctrlAzul) return;
-        const idx = Math.max(0, Math.min(Math.floor(xInternaPíxelesAzul / anchoCeldaActual), diasDelRango.length - 1));
-        const f = diasDelRango[idx];
-        if (f) { ctrlAzul.innerText = `${f.getDate()} ${f.toLocaleString('es-ES', { month: 'short' })}`; actualizarPlanoDinamico(idx); }
-    }
-    window.addEventListener('mousemove', (e) => { if (dragAzul) calcularYActualizarLineaInterna(e.clientX); });
-    window.addEventListener('touchmove', (e) => { if (dragAzul && e.touches.length > 0) { e.preventDefault(); calcularYActualizarLineaInterna(e.touches[0].clientX); } }, { passive: false });
-
-    // --- RESIZE PANELES ---
-    const resizerLateral = document.getElementById('resizer-lateral'), panelIzquierdo = document.getElementById('panel-izquierdo');
-    if (resizerLateral) {
-        resizerLateral.addEventListener('mousedown', (e) => { e.preventDefault(); window.addEventListener('mousemove', resizeH); window.addEventListener('mouseup', stopResizeH); });
-        resizerLateral.addEventListener('touchstart', () => { window.addEventListener('touchmove', resizeHT); window.addEventListener('touchend', stopResizeH); });
-    }
-    function resizeH(e) { if (panelIzquierdo) { panelIzquierdo.style.width = `${Math.max(50, Math.min(window.innerWidth * 0.5, e.clientX))}px`; actualizarGraficaLineaAzul(); } }
-    function resizeHT(e) { if (e.touches.length > 0 && panelIzquierdo) { panelIzquierdo.style.width = `${Math.max(50, Math.min(window.innerWidth * 0.5, e.touches[0].clientX))}px`; actualizarGraficaLineaAzul(); } }
-    function stopResizeH() { window.removeEventListener('mousemove', resizeH); window.removeEventListener('touchmove', resizeHT); }
-
-    const resizerPlano = document.getElementById('resizer-plano'), panelPlano = document.getElementById('panel-plano');
-    if (resizerPlano) {
-        resizerPlano.addEventListener('mousedown', (e) => { e.preventDefault(); window.addEventListener('mousemove', resizeV); window.addEventListener('mouseup', stopResizeV); });
-        resizerPlano.addEventListener('touchstart', () => { window.addEventListener('touchmove', resizeVT); window.addEventListener('touchend', stopResizeV); });
-    }
-    function resizeV(e) { if (!panelPlano) return; const h = window.innerHeight - e.clientY; if (h >= 40 && h <= window.innerHeight - 44) panelPlano.style.height = `${h}px`; }
-    function resizeVT(e) { if (e.touches.length > 0 && panelPlano) { const h = window.innerHeight - e.touches[0].clientY; if (h >= 40 && h <= window.innerHeight - 44) panelPlano.style.height = `${h}px`; } }
-    function stopResizeV() { window.removeEventListener('mousemove', resizeV); window.removeEventListener('touchmove', resizeVT); setTimeout(actualizarGraficaLineaAzul, 100); }
-
-    // --- ZOOM PLANO ---
-    let escalaPlano = 1.0, distInicialPlano = 0;
-    const moduloEscalablePlano = document.getElementById('modulo-escalable-plano');
-    if (panelPlano && moduloEscalablePlano) {
-        panelPlano.addEventListener('touchstart', (e) => { if (e.touches.length === 2) distInicialPlano = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }, { passive: true });
-        panelPlano.addEventListener('touchmove', (e) => {
-            if (e.touches.length === 2 && distInicialPlano > 0) {
-                e.preventDefault();
-                const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-                escalaPlano = Math.max(0.5, Math.min(2.5, escalaPlano * (dist / distInicialPlano)));
-                moduloEscalablePlano.style.transform = `scale(${escalaPlano})`; distInicialPlano = dist;
-            }
-        }, { passive: false });
-    }
-
-    // --- PLANO ---
-    let herramienta = null, objetosPlano = [], resizePlanoObj = false, planoTargetId = null, nodoDireccion = null, objOriginalState = {}, startX, startY;
-
-    function setHerramienta(t) {
-        herramienta = herramienta === t ? null : t;
-        document.getElementById('btn-herramienta-piso').className = `btn-herramienta${herramienta === 'piso' ? ' activo-piso' : ''}`;
-        document.getElementById('btn-herramienta-hab').className = `btn-herramienta${herramienta === 'habitacion' ? ' activo-hab' : ''}`;
-    }
-
-    function iniciarDibujo(e) {
-        if (!herramienta || !moduloEscalablePlano || e.target.classList.contains('nodo-resize') || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-        const rect = moduloEscalablePlano.getBoundingClientRect();
-        const cx = e.touches ? e.touches[0].clientX : e.clientX, cy = e.touches ? e.touches[0].clientY : e.clientY;
-        const xC = (cx - rect.left) / escalaPlano, yC = (cy - rect.top) / escalaPlano;
-        const nuevo = { id: `obj-${Date.now()}`, tipo: herramienta, nombre: herramienta === 'piso' ? 'Piso' : 'Habitación', x: xC - 60, y: yC - 40, w: 140, h: 90 };
-        if (herramienta === 'piso' && detectarColisionPisos(nuevo)) return alert("Los pisos no se pueden solapar.");
-        if (herramienta === 'habitacion' && !comprobarHabitacionDentroDePiso(nuevo).dentro) return alert("Las habitaciones deben estar dentro de un piso.");
-        objetosPlano.push(nuevo); renderizarPlano(); setHerramienta(null);
-    }
-
-    function detectarColisionPisos(nuevo, idIgnorar = null) {
-        return objetosPlano.some(o => o.tipo === 'piso' && o.id !== idIgnorar && nuevo.x < o.x + o.w && nuevo.x + nuevo.w > o.x && nuevo.y < o.y + o.h && nuevo.y + nuevo.h > o.y);
-    }
-    function comprobarHabitacionDentroDePiso(hab) {
-        return { dentro: objetosPlano.some(p => p.tipo === 'piso' && hab.x >= p.x && (hab.x + hab.w) <= (p.x + p.w) && hab.y >= p.y && (hab.y + hab.h) <= (p.y + p.h)) };
-    }
-
-    function renderizarPlano() {
-        const ayuda = document.getElementById('ayuda-plano');
-        if (ayuda) ayuda.style.display = objetosPlano.length === 0 ? 'block' : 'none';
-        document.querySelectorAll('.objeto-plano').forEach(el => el.remove());
-        if (!moduloEscalablePlano) return;
-        objetosPlano.forEach(o => {
-            const el = document.createElement('div');
-            el.className = `objeto-plano tipo-${o.tipo}`; el.id = o.id;
-            el.style.cssText = `left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;`;
-            el.innerHTML = `
-                <div class="header-objeto">
-                    <input type="text" value="${o.nombre}" onchange="objetosPlano.find(x=>x.id==='${o.id}').nombre=this.value">
-                    <button onclick="event.stopPropagation();eliminarObjetoPlano('${o.id}')" style="background:none;border:none;color:var(--red);font-weight:bold;cursor:pointer;">×</button>
-                </div>
-                <div class="lista-nombres-en-plano" id="dinamico-nombres-${o.id}"></div>
-                <div class="nodo-resize nodo-n"  onmousedown="iniciarResizePlano(event,'${o.id}','n')"  ontouchstart="iniciarResizePlano(event,'${o.id}','n')"></div>
-                <div class="nodo-resize nodo-s"  onmousedown="iniciarResizePlano(event,'${o.id}','s')"  ontouchstart="iniciarResizePlano(event,'${o.id}','s')"></div>
-                <div class="nodo-resize nodo-e"  onmousedown="iniciarResizePlano(event,'${o.id}','e')"  ontouchstart="iniciarResizePlano(event,'${o.id}','e')"></div>
-                <div class="nodo-resize nodo-w"  onmousedown="iniciarResizePlano(event,'${o.id}','w')"  ontouchstart="iniciarResizePlano(event,'${o.id}','w')"></div>
-                <div class="nodo-resize nodo-nw" onmousedown="iniciarResizePlano(event,'${o.id}','nw')" ontouchstart="iniciarResizePlano(event,'${o.id}','nw')"></div>
-                <div class="nodo-resize nodo-ne" onmousedown="iniciarResizePlano(event,'${o.id}','ne')" ontouchstart="iniciarResizePlano(event,'${o.id}','ne')"></div>
-                <div class="nodo-resize nodo-sw" onmousedown="iniciarResizePlano(event,'${o.id}','sw')" ontouchstart="iniciarResizePlano(event,'${o.id}','sw')"></div>
-                <div class="nodo-resize nodo-se" onmousedown="iniciarResizePlano(event,'${o.id}','se')" ontouchstart="iniciarResizePlano(event,'${o.id}','se')"></div>`;
-            moduloEscalablePlano.appendChild(el);
-        });
-        recalcularDiaPorPosicion();
-    }
-
-    function eliminarObjetoPlano(id) {
-        objetosPlano = objetosPlano.filter(x => x.id !== id);
+        // Dibujar los rangos sobre sus líneas
         for (let rId in baseDatosRangos) {
             const r = baseDatosRangos[rId];
-            r.destinosPlano = r.destinosPlano.filter(x => x !== id);
-            if (r.asignaciones) { for (let n in r.asignaciones) { if (r.asignaciones[n] === id) r.asignaciones[n] = null; } }
+            if (!document.getElementById(rId)) {
+                dibujarRangoDesdeEstado(rId, r);
+            }
+            renderizarNombresEnRango(rId);
         }
+
+        recalcularAnchosPixelesRangos();
         renderizarPlano();
-    }
+        setTimeout(actualizarGraficaLineaAzul, 200);
+        mostrarToast('Estado restaurado', 'ok');
 
-    function iniciarResizePlano(e, id, dir) {
-        e.stopPropagation(); e.preventDefault();
-        resizePlanoObj = true; planoTargetId = id; nodoDireccion = dir;
-        startX = e.touches ? e.touches[0].clientX : e.clientX;
-        startY = e.touches ? e.touches[0].clientY : e.clientY;
-        const obj = objetosPlano.find(o => o.id === id); objOriginalState = { x: obj.x, y: obj.y, w: obj.w, h: obj.h };
-        window.addEventListener('mousemove', moverResizePlano); window.addEventListener('mouseup', detenerResizePlano);
-        window.addEventListener('touchmove', moverResizePlano, { passive: false }); window.addEventListener('touchend', detenerResizePlano);
+    } catch (err) {
+        console.error('Error cargando:', err);
+        mostrarToast('No se pudo cargar el estado', 'err');
     }
-    function moverResizePlano(e) {
-        if (!resizePlanoObj) return;
-        const cx = e.touches ? e.touches[0].clientX : e.clientX, cy = e.touches ? e.touches[0].clientY : e.clientY;
-        const dx = (cx - startX) / escalaPlano, dy = (cy - startY) / escalaPlano;
-        const obj = objetosPlano.find(o => o.id === planoTargetId); if (!obj) return;
-        let nx = objOriginalState.x, ny = objOriginalState.y, nw = objOriginalState.w, nh = objOriginalState.h;
-        if (nodoDireccion.includes('e')) nw += dx; if (nodoDireccion.includes('w')) { nx += dx; nw -= dx; }
-        if (nodoDireccion.includes('s')) nh += dy; if (nodoDireccion.includes('n')) { ny += dy; nh -= dy; }
-        if (nw > 40 && nh > 30 && nx >= 0 && ny >= 0) {
-            if (obj.tipo === 'piso' && detectarColisionPisos({ x: nx, y: ny, w: nw, h: nh }, obj.id)) return;
-            obj.x = nx; obj.y = ny; obj.w = nw; obj.h = nh;
-            const dom = document.getElementById(obj.id);
-            if (dom) { dom.style.left = `${nx}px`; dom.style.top = `${ny}px`; dom.style.width = `${nw}px`; dom.style.height = `${nh}px`; }
+}
+
+// Crea una fila de línea con un lineaId específico (para restaurar desde BD)
+function crearFilaLinea(lineaId, etiqueta) {
+    if (!contenedorLineasCompleto || !scrollCabecera) return;
+    const color = paletaColores[colorIndiceGlobal % paletaColores.length]; colorIndiceGlobal++;
+    const fila = document.createElement('div');
+    fila.className = 'fila-linea-reserva'; fila.id = `fila-${lineaId}`;
+    fila.innerHTML = `
+        <div class="columna-fija-mandos ${mandosOcultados ? 'ocultar-mandos' : ''}">
+            <div style="display:flex;flex-direction:column;gap:2px;">
+                <button class="btn-mando-mini" onclick="moverLinea('${lineaId}','subir')">▲</button>
+                <button class="btn-mando-mini" onclick="moverLinea('${lineaId}','bajar')">▼</button>
+            </div>
+            <input type="text" value="${etiqueta}">
+            <button onclick="document.getElementById('fila-${lineaId}').remove();" class="btn-borrar-linea">×</button>
+        </div>
+        <div class="scroll-horizontal-timeline" id="scroll-linea-${lineaId}" onscroll="sincronizarScrolls(this)">
+            <div class="wrapper-timeline" style="width:${diasDelRango.length * anchoCeldaActual}px;">
+                <div class="zona-rangos" id="zona-rangos-${lineaId}" onclick="gestionarClicksRango(event,'${lineaId}','${color}')"></div>
+            </div>
+        </div>`;
+    contenedorLineasCompleto.appendChild(fila);
+    document.getElementById(`scroll-linea-${lineaId}`).scrollLeft = scrollCabecera.scrollLeft;
+}
+
+// Dibuja un rango ya existente en baseDatosRangos (sin crear nuevo ID)
+function dibujarRangoDesdeEstado(rangoId, r) {
+    const rangoEl = document.createElement('div');
+    rangoEl.className = 'rango-creado'; rangoEl.id = rangoId;
+    rangoEl.style.background = r.color;
+    rangoEl.innerHTML = _htmlRango(rangoId);
+    rangoEl.addEventListener('dragover', (e) => e.preventDefault());
+    rangoEl.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (nombreArrastradoTemporal && !baseDatosRangos[rangoId].nombres.includes(nombreArrastradoTemporal)) {
+            baseDatosRangos[rangoId].nombres.push(nombreArrastradoTemporal);
+            renderizarNombresEnRango(rangoId); recalcularDiaPorPosicion(); marcarCambio();
+        }
+        nombreArrastradoTemporal = "";
+    });
+    const zona = document.getElementById(`zona-rangos-${r.lineaId}`);
+    if (zona) zona.appendChild(rangoEl);
+}
+
+// HTML interno compartido entre dibujarRango y dibujarRangoDesdeEstado
+function _htmlRango(rangoId) {
+    return `
+        <div class="control-borde" onmousedown="iniciarResizeRango(event,'${rangoId}','izq')" ontouchstart="iniciarResizeRango(event,'${rangoId}','izq')" style="width:14px;height:100%;cursor:ew-resize;background:rgba(0,0,0,0.2);order:0;border-radius:5px 0 0 5px;flex-shrink:0;"></div>
+        <button onclick="event.stopPropagation();abrirModal('${rangoId}')" style="background:rgba(251,191,36,0.25);color:#fbbf24;border:1px solid rgba(251,191,36,0.4);padding:2px 6px;font-size:9px;font-weight:700;cursor:pointer;margin-left:2px;border-radius:4px;order:1;flex-shrink:0;white-space:nowrap;">🏠 Vincular</button>
+        <div class="contenedor-nombres-rango" id="box-nombres-${rangoId}"></div>
+        <button onclick="event.stopPropagation();eliminarRango('${rangoId}')" style="background:none;border:none;color:rgba(255,255,255,0.6);font-weight:bold;cursor:pointer;margin-right:4px;font-size:14px;order:3;flex-shrink:0;">×</button>
+        <div class="control-borde" onmousedown="iniciarResizeRango(event,'${rangoId}','der')" ontouchstart="iniciarResizeRango(event,'${rangoId}','der')" style="width:14px;height:100%;cursor:ew-resize;background:rgba(0,0,0,0.2);order:4;border-radius:0 5px 5px 0;flex-shrink:0;"></div>`;
+}
+
+function eliminarRango(rangoId) {
+    delete baseDatosRangos[rangoId];
+    const el = document.getElementById(rangoId); if (el) el.remove();
+    marcarCambio();
+}
+
+// ── AUTOSAVE ──
+let _hayCambios = false;
+function marcarCambio() { _hayCambios = true; }
+setInterval(() => { if (_hayCambios) { guardarEstado(); _hayCambios = false; } }, 5000);
+
+/* ═══════════════════════════════════════════════════════════════
+   APP  ████████████████████████████████████████████████████████
+   ═══════════════════════════════════════════════════════════════ */
+
+const paletaColores = ['#6c8fff','#a78bfa','#34d399','#fbbf24','#f87171','#22d3ee','#fb923c','#e879f9','#4ade80','#818cf8'];
+let colorIndiceGlobal = 0, mandosOcultados = false, nombreArrastradoTemporal = "";
+let modalRangoId = null;
+
+// ── TOGGLE PANELES ──
+function togglePanel(tipo) {
+    if (tipo === 'nombres') {
+        const p = document.getElementById('panel-izquierdo'), btn = document.getElementById('btn-toggle-nombres');
+        if (p && btn) { const o = p.classList.toggle('oculto'); btn.innerText = o ? '◀ Nombres' : 'Nombres'; }
+    } else if (tipo === 'plano') {
+        const p = document.getElementById('panel-plano'), btn = document.getElementById('btn-toggle-plano');
+        if (p && btn) {
+            const o = p.classList.toggle('oculto');
+            btn.innerText = o ? 'Plano ▶' : 'Plano ▼';
+            if (o) btn.classList.remove('activo'); else btn.classList.add('activo');
         }
     }
-    function detenerResizePlano() {
-        if (resizePlanoObj && planoTargetId) {
-            const obj = objetosPlano.find(o => o.id === planoTargetId);
-            if (obj && obj.tipo === 'habitacion' && !comprobarHabitacionDentroDePiso(obj).dentro) {
-                alert("La habitación debe quedar dentro de un piso.");
-                obj.x = objOriginalState.x; obj.y = objOriginalState.y; obj.w = objOriginalState.w; obj.h = objOriginalState.h;
-                renderizarPlano();
-            }
-        }
-        resizePlanoObj = false; window.removeEventListener('mousemove', moverResizePlano); window.removeEventListener('touchmove', moverResizePlano);
-    }
+    setTimeout(actualizarGraficaLineaAzul, 100);
+}
 
-    // --- PLANO DINÁMICO ---
-    function actualizarPlanoDinamico(diaIdx) {
-        objetosPlano.forEach(o => { const b = document.getElementById(`dinamico-nombres-${o.id}`); if (b) b.innerHTML = ''; });
-        for (let rId in baseDatosRangos) {
-            let r = baseDatosRangos[rId];
-            if (diaIdx >= r.diaInicio && diaIdx < r.diaFin && r.destinosPlano && r.destinosPlano.length > 0) {
-                if (r.asignaciones && Object.keys(r.asignaciones).length > 0) {
-                    for (let nombre in r.asignaciones) {
-                        const objId = r.asignaciones[nombre]; if (!objId) continue;
-                        const b = document.getElementById(`dinamico-nombres-${objId}`);
-                        if (b) { const s = document.createElement('span'); s.className = 'tag-plano-dinamico'; s.innerText = nombre; b.appendChild(s); }
-                    }
-                } else {
-                    r.destinosPlano.forEach(destId => {
-                        const b = document.getElementById(`dinamico-nombres-${destId}`);
-                        if (b) r.nombres.forEach(n => { const s = document.createElement('span'); s.className = 'tag-plano-dinamico'; s.innerText = n; b.appendChild(s); });
-                    });
+function toggleMandosLineas() {
+    mandosOcultados = !mandosOcultados;
+    document.getElementById('btn-toggle-mandos').innerText = mandosOcultados ? 'Mandos ▶' : 'Mandos';
+    document.querySelectorAll('.columna-fija-mandos').forEach(m => {
+        mandosOcultados ? m.classList.add('ocultar-mandos') : m.classList.remove('ocultar-mandos');
+    });
+    setTimeout(actualizarGraficaLineaAzul, 100);
+    marcarCambio();
+}
+
+// ── CALENDARIO ──
+const cabecera = document.getElementById('calendario-cabecera');
+const scrollCabecera = document.getElementById('scroll-cabecera');
+const diasDelRango = [];
+let fInicio = new Date(2026, 6, 23), fFin = new Date(2026, 7, 31);
+while (fInicio <= fFin) { diasDelRango.push(new Date(fInicio)); fInicio.setDate(fInicio.getDate() + 1); }
+if (cabecera) {
+    diasDelRango.forEach(f => {
+        const c = document.createElement('div');
+        c.className = 'dia-celda';
+        c.innerHTML = `<strong>${f.getDate()}</strong>${f.toLocaleString('es-ES', { month: 'short' })}`;
+        cabecera.appendChild(c);
+    });
+}
+
+let scrollBloqueado = false;
+function sincronizarScrolls(origen) {
+    if (scrollBloqueado) return; scrollBloqueado = true;
+    document.querySelectorAll('.scroll-horizontal-timeline').forEach(c => { if (c !== origen) c.scrollLeft = origen.scrollLeft; });
+    scrollBloqueado = false; actualizarGraficaLineaAzul();
+}
+
+// ── ZOOM CALENDARIO ──
+let anchoCeldaActual = 50, toqueDistanciaInicial = 0;
+const seccionCalendario = document.getElementById('seccion-calendario');
+if (seccionCalendario) {
+    seccionCalendario.addEventListener('touchstart', (e) => { if (e.touches.length === 2) toqueDistanciaInicial = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }, { passive: true });
+    seccionCalendario.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2 && toqueDistanciaInicial > 0) {
+            e.preventDefault();
+            const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            if (Math.abs(dist - toqueDistanciaInicial) > 3) { cambiarZoom(dist > toqueDistanciaInicial ? 3 : -3); toqueDistanciaInicial = dist; }
+        }
+    }, { passive: false });
+}
+
+function cambiarZoom(v) {
+    anchoCeldaActual = Math.max(20, Math.min(160, anchoCeldaActual + v));
+    document.querySelectorAll('.dia-celda').forEach(c => { c.style.minWidth = `${anchoCeldaActual}px`; c.style.width = `${anchoCeldaActual}px`; });
+    const w = diasDelRango.length * anchoCeldaActual;
+    document.querySelectorAll('.wrapper-timeline').forEach(wEl => { wEl.style.width = `${w}px`; });
+    recalcularAnchosPixelesRangos(); actualizarGraficaLineaAzul();
+}
+
+// ── GESTIÓN DE LÍNEAS Y RANGOS ──
+const contenedorLineasCompleto = document.getElementById('contenedor-lineas-completo');
+let baseDatosRangos = {};
+
+function agregarNombre() {
+    const lista = document.getElementById('lista-nombres'); if (!lista) return;
+    const li = document.createElement('li');
+    li.className = 'item-nombre'; li.draggable = true;
+    li.innerHTML = `<input type="text" value="Persona ${lista.children.length + 1}"><button onclick="this.parentElement.remove(); marcarCambio();" class="btn-borrar-linea">×</button>`;
+    li.addEventListener('dragstart', (e) => { nombreArrastradoTemporal = li.querySelector('input').value; e.dataTransfer.setData('text/plain', nombreArrastradoTemporal); });
+    li.querySelector('input').addEventListener('change', marcarCambio);
+    lista.appendChild(li);
+    const inp = li.querySelector('input'); inp.focus(); inp.select();
+    marcarCambio();
+}
+
+function agregarLinea() {
+    if (!contenedorLineasCompleto || !scrollCabecera) return;
+    const lineaId = Date.now();
+    crearFilaLinea(lineaId, `Línea ${contenedorLineasCompleto.children.length + 1}`);
+    const inp = document.querySelector(`#fila-${lineaId} .columna-fija-mandos input`);
+    if (inp) { inp.focus(); inp.select(); }
+    marcarCambio();
+}
+
+function moverLinea(id, dir) {
+    if (!contenedorLineasCompleto) return;
+    const el = document.getElementById(`fila-${id}`); if (!el) return;
+    if (dir === 'subir' && el.previousElementSibling) contenedorLineasCompleto.insertBefore(el, el.previousElementSibling);
+    else if (dir === 'bajar' && el.nextElementSibling) contenedorLineasCompleto.insertBefore(el.nextElementSibling, el);
+    marcarCambio();
+}
+
+let primerClick = null;
+function gestionarClicksRango(event, lineaId, colorHex) {
+    if (event.target.classList.contains('rango-creado') || event.target.classList.contains('control-borde') || event.target.closest('.tag-nombre-rango') || event.target.tagName === 'BUTTON') return;
+    const zona = document.getElementById(`zona-rangos-${lineaId}`); if (!zona) return;
+    const diaIndex = Math.floor((event.clientX - zona.getBoundingClientRect().left) / anchoCeldaActual);
+    if (primerClick === null || primerClick.lineaId !== lineaId) {
+        primerClick = { lineaId, diaInicio: diaIndex };
+        const guia = document.createElement('div');
+        guia.className = 'guia-pre-rango'; guia.id = `guia-linea-${lineaId}`;
+        guia.style.left = `${diaIndex * anchoCeldaActual}px`; guia.style.borderColor = colorHex;
+        zona.appendChild(guia);
+    } else {
+        let dIn = Math.min(primerClick.diaInicio, diaIndex), dFn = Math.max(primerClick.diaInicio, diaIndex) + 1;
+        const gEx = document.getElementById(`guia-linea-${lineaId}`); if (gEx) gEx.remove();
+        if (!comprobarSuperposicion(lineaId, dIn, dFn)) dibujarRango(lineaId, dIn, dFn, colorHex);
+        else alert("Los rangos no se pueden solapar.");
+        primerClick = null;
+    }
+}
+
+function comprobarSuperposicion(lineaId, dIn, dFn, idIgnorar = null) {
+    for (let rId in baseDatosRangos) {
+        let r = baseDatosRangos[rId];
+        if (r.lineaId === lineaId && rId !== idIgnorar && dIn < r.diaFin && dFn > r.diaInicio) return true;
+    }
+    return false;
+}
+
+function dibujarRango(lineaId, diaInicio, diaFin, colorHex) {
+    const rangoId = `rango-${Date.now()}`;
+    baseDatosRangos[rangoId] = { lineaId, diaInicio, diaFin, nombres: [], destinosPlano: [], color: colorHex, asignaciones: {} };
+    const rangoEl = document.createElement('div');
+    rangoEl.className = 'rango-creado'; rangoEl.id = rangoId;
+    rangoEl.style.background = colorHex;
+    rangoEl.innerHTML = _htmlRango(rangoId);
+    rangoEl.addEventListener('dragover', (e) => e.preventDefault());
+    rangoEl.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (nombreArrastradoTemporal && !baseDatosRangos[rangoId].nombres.includes(nombreArrastradoTemporal)) {
+            baseDatosRangos[rangoId].nombres.push(nombreArrastradoTemporal);
+            renderizarNombresEnRango(rangoId); recalcularDiaPorPosicion(); marcarCambio();
+        }
+        nombreArrastradoTemporal = "";
+    });
+    const zona = document.getElementById(`zona-rangos-${lineaId}`);
+    if (zona) zona.appendChild(rangoEl);
+    recalcularAnchosPixelesRangos(); marcarCambio();
+}
+
+function recalcularAnchosPixelesRangos() {
+    for (let rId in baseDatosRangos) {
+        let r = baseDatosRangos[rId]; const dom = document.getElementById(rId);
+        if (dom) { dom.style.left = `${r.diaInicio * anchoCeldaActual}px`; dom.style.width = `${(r.diaFin - r.diaInicio) * anchoCeldaActual}px`; }
+    }
+}
+
+function renderizarNombresEnRango(rangoId) {
+    const box = document.getElementById(`box-nombres-${rangoId}`); if (!box) return;
+    box.innerHTML = '';
+    baseDatosRangos[rangoId].nombres.forEach((nom, idx) => {
+        const tag = document.createElement('span'); tag.className = 'tag-nombre-rango';
+        tag.innerHTML = `${nom} <b style="color:rgba(255,255,255,0.6);margin-left:4px;cursor:pointer;" onclick="event.stopPropagation();baseDatosRangos['${rangoId}'].nombres.splice(${idx},1);renderizarNombresEnRango('${rangoId}');recalcularDiaPorPosicion();marcarCambio();">×</b>`;
+        box.appendChild(tag);
+    });
+}
+
+// ── MODAL ASIGNACIÓN HABITACIONES ──
+function abrirModal(rangoId) {
+    const r = baseDatosRangos[rangoId]; if (!r) return;
+    if (r.nombres.length === 0) return alert("Arrastra personas al rango antes de vincular.");
+    if (objetosPlano.length === 0) return alert("Dibuja pisos o habitaciones en el plano primero.");
+    modalRangoId = rangoId;
+    const f0 = diasDelRango[r.diaInicio], f1 = diasDelRango[r.diaFin - 1];
+    const fmt = d => d ? `${d.getDate()} ${d.toLocaleString('es-ES',{month:'short'})}` : '';
+    document.getElementById('modal-subtitulo').textContent = `${r.nombres.length} persona${r.nombres.length > 1 ? 's' : ''} · ${fmt(f0)} – ${fmt(f1)}`;
+    const optsHTML = objetosPlano.map(o => `<option value="${o.id}">${o.tipo === 'piso' ? '🏢' : '🛏'} ${o.nombre}</option>`).join('');
+    const cuerpo = document.getElementById('modal-cuerpo'); cuerpo.innerHTML = '';
+    r.nombres.forEach(nombre => {
+        const asigActual = r.asignaciones[nombre] || '';
+        const fila = document.createElement('div'); fila.className = 'fila-asig';
+        fila.innerHTML = `<span class="fila-asig-nombre">👤 ${nombre}</span><select data-nombre="${nombre}"><option value="">— Sin asignar —</option>${optsHTML}</select>`;
+        cuerpo.appendChild(fila);
+        if (asigActual) fila.querySelector('select').value = asigActual;
+    });
+    document.getElementById('modal-overlay').classList.add('visible');
+}
+
+function cerrarModal() { document.getElementById('modal-overlay').classList.remove('visible'); modalRangoId = null; }
+
+function confirmarAsignacion() {
+    if (!modalRangoId) return;
+    const r = baseDatosRangos[modalRangoId];
+    const nuevasAsig = {};
+    document.querySelectorAll('#modal-cuerpo select').forEach(sel => { nuevasAsig[sel.dataset.nombre] = sel.value || null; });
+    r.asignaciones = nuevasAsig;
+    r.destinosPlano = [...new Set(Object.values(nuevasAsig).filter(Boolean))];
+    cerrarModal(); recalcularDiaPorPosicion(); renderizarPlano(); marcarCambio();
+}
+
+// ── RESIZE RANGOS ──
+let rangoEditando = null, bordeEditando = null, diaInicioBase = 0, diaFinBase = 0, xSujeto = 0;
+function iniciarResizeRango(e, rangoId, borde) {
+    e.stopPropagation(); e.preventDefault();
+    rangoEditando = rangoId; bordeEditando = borde;
+    xSujeto = e.touches ? e.touches[0].clientX : e.clientX;
+    diaInicioBase = baseDatosRangos[rangoId].diaInicio; diaFinBase = baseDatosRangos[rangoId].diaFin;
+    window.addEventListener('mousemove', moverResizeRango); window.addEventListener('mouseup', detenerResizeRango);
+    window.addEventListener('touchmove', moverResizeRango, { passive: false }); window.addEventListener('touchend', detenerResizeRango);
+}
+function moverResizeRango(e) {
+    if (!rangoEditando) return;
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const desp = Math.round((cx - xSujeto) / anchoCeldaActual);
+    let r = baseDatosRangos[rangoEditando], nIn = r.diaInicio, nFn = r.diaFin;
+    if (bordeEditando === 'izq') nIn = Math.min(diaFinBase - 1, diaInicioBase + desp);
+    else nFn = Math.max(diaInicioBase + 1, diaFinBase + desp);
+    if (nIn >= 0 && nFn <= diasDelRango.length && !comprobarSuperposicion(r.lineaId, nIn, nFn, rangoEditando)) { r.diaInicio = nIn; r.diaFin = nFn; recalcularAnchosPixelesRangos(); }
+}
+function detenerResizeRango() { if (rangoEditando) marcarCambio(); rangoEditando = null; window.removeEventListener('mousemove', moverResizeRango); window.removeEventListener('touchmove', moverResizeRango); }
+
+// ── LÍNEA AZUL ──
+const ctrlAzul = document.getElementById('control-linea'), lineaAzul = document.getElementById('linea-azul');
+const wrapperCabecera = document.getElementById('wrapper-cabecera');
+let dragAzul = false, xInternaPíxelesAzul = 0;
+if (ctrlAzul) { ctrlAzul.onmousedown = () => dragAzul = true; ctrlAzul.ontouchstart = () => dragAzul = true; }
+window.addEventListener('mouseup',   () => { dragAzul = false; resizePlanoObj = false; });
+window.addEventListener('touchend',  () => { dragAzul = false; resizePlanoObj = false; });
+
+function calcularYActualizarLineaInterna(clientX) {
+    if (!wrapperCabecera) return;
+    const rectW = wrapperCabecera.getBoundingClientRect();
+    xInternaPíxelesAzul = Math.max(0, Math.min(clientX - rectW.left, rectW.width));
+    actualizarGraficaLineaAzul();
+}
+function actualizarGraficaLineaAzul() {
+    if (!lineaAzul || !scrollCabecera) return;
+    const elMando = document.getElementById('mando-eje-dias'), rectW = wrapperCabecera ? wrapperCabecera.getBoundingClientRect() : null;
+    if (!elMando || !rectW) return;
+    const margen = elMando.getBoundingClientRect().width + 11;
+    const xVisual = (xInternaPíxelesAzul - scrollCabecera.scrollLeft) + margen;
+    if (xVisual < margen || xVisual > rectW.width + margen) lineaAzul.style.opacity = "0";
+    else { lineaAzul.style.opacity = "1"; lineaAzul.style.left = `${xVisual}px`; }
+    recalcularDiaPorPosicion();
+}
+function recalcularDiaPorPosicion() {
+    if (!ctrlAzul) return;
+    const idx = Math.max(0, Math.min(Math.floor(xInternaPíxelesAzul / anchoCeldaActual), diasDelRango.length - 1));
+    const f = diasDelRango[idx];
+    if (f) { ctrlAzul.innerText = `${f.getDate()} ${f.toLocaleString('es-ES', { month: 'short' })}`; actualizarPlanoDinamico(idx); }
+}
+window.addEventListener('mousemove', (e) => { if (dragAzul) calcularYActualizarLineaInterna(e.clientX); });
+window.addEventListener('touchmove', (e) => { if (dragAzul && e.touches.length > 0) { e.preventDefault(); calcularYActualizarLineaInterna(e.touches[0].clientX); } }, { passive: false });
+
+// ── RESIZE PANELES ──
+const resizerLateral = document.getElementById('resizer-lateral'), panelIzquierdo = document.getElementById('panel-izquierdo');
+if (resizerLateral) {
+    resizerLateral.addEventListener('mousedown', (e) => { e.preventDefault(); window.addEventListener('mousemove', resizeH); window.addEventListener('mouseup', stopResizeH); });
+    resizerLateral.addEventListener('touchstart', () => { window.addEventListener('touchmove', resizeHT); window.addEventListener('touchend', stopResizeH); });
+}
+function resizeH(e)  { if (panelIzquierdo) { panelIzquierdo.style.width = `${Math.max(50, Math.min(window.innerWidth * 0.5, e.clientX))}px`; actualizarGraficaLineaAzul(); } }
+function resizeHT(e) { if (e.touches.length > 0 && panelIzquierdo) { panelIzquierdo.style.width = `${Math.max(50, Math.min(window.innerWidth * 0.5, e.touches[0].clientX))}px`; actualizarGraficaLineaAzul(); } }
+function stopResizeH() { window.removeEventListener('mousemove', resizeH); window.removeEventListener('touchmove', resizeHT); }
+
+const resizerPlano = document.getElementById('resizer-plano'), panelPlano = document.getElementById('panel-plano');
+if (resizerPlano) {
+    resizerPlano.addEventListener('mousedown', (e) => { e.preventDefault(); window.addEventListener('mousemove', resizeV); window.addEventListener('mouseup', stopResizeV); });
+    resizerPlano.addEventListener('touchstart', () => { window.addEventListener('touchmove', resizeVT); window.addEventListener('touchend', stopResizeV); });
+}
+function resizeV(e)  { if (!panelPlano) return; const h = window.innerHeight - e.clientY; if (h >= 40 && h <= window.innerHeight - 44) panelPlano.style.height = `${h}px`; }
+function resizeVT(e) { if (e.touches.length > 0 && panelPlano) { const h = window.innerHeight - e.touches[0].clientY; if (h >= 40 && h <= window.innerHeight - 44) panelPlano.style.height = `${h}px`; } }
+function stopResizeV() { window.removeEventListener('mousemove', resizeV); window.removeEventListener('touchmove', resizeVT); setTimeout(actualizarGraficaLineaAzul, 100); }
+
+// ── ZOOM PLANO ──
+let escalaPlano = 1.0, distInicialPlano = 0;
+const moduloEscalablePlano = document.getElementById('modulo-escalable-plano');
+if (panelPlano && moduloEscalablePlano) {
+    panelPlano.addEventListener('touchstart', (e) => { if (e.touches.length === 2) distInicialPlano = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }, { passive: true });
+    panelPlano.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2 && distInicialPlano > 0) {
+            e.preventDefault();
+            const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            escalaPlano = Math.max(0.5, Math.min(2.5, escalaPlano * (dist / distInicialPlano)));
+            moduloEscalablePlano.style.transform = `scale(${escalaPlano})`; distInicialPlano = dist;
+        }
+    }, { passive: false });
+}
+
+// ── PLANO ──
+let herramienta = null, objetosPlano = [], resizePlanoObj = false, planoTargetId = null, nodoDireccion = null, objOriginalState = {}, startX, startY;
+
+function setHerramienta(t) {
+    herramienta = herramienta === t ? null : t;
+    document.getElementById('btn-herramienta-piso').className = `btn-herramienta${herramienta === 'piso' ? ' activo-piso' : ''}`;
+    document.getElementById('btn-herramienta-hab').className  = `btn-herramienta${herramienta === 'habitacion' ? ' activo-hab' : ''}`;
+}
+
+function iniciarDibujo(e) {
+    if (!herramienta || !moduloEscalablePlano || e.target.classList.contains('nodo-resize') || e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+    const rect = moduloEscalablePlano.getBoundingClientRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX, cy = e.touches ? e.touches[0].clientY : e.clientY;
+    const nuevo = { id: `obj-${Date.now()}`, tipo: herramienta, nombre: herramienta === 'piso' ? 'Piso' : 'Habitación', x: (cx - rect.left) / escalaPlano - 60, y: (cy - rect.top) / escalaPlano - 40, w: 140, h: 90 };
+    if (herramienta === 'piso' && detectarColisionPisos(nuevo)) return alert("Los pisos no se pueden solapar.");
+    if (herramienta === 'habitacion' && !comprobarHabitacionDentroDePiso(nuevo).dentro) return alert("Las habitaciones deben estar dentro de un piso.");
+    objetosPlano.push(nuevo); renderizarPlano(); setHerramienta(null); marcarCambio();
+}
+
+function detectarColisionPisos(nuevo, idIgnorar = null) {
+    return objetosPlano.some(o => o.tipo === 'piso' && o.id !== idIgnorar && nuevo.x < o.x + o.w && nuevo.x + nuevo.w > o.x && nuevo.y < o.y + o.h && nuevo.y + nuevo.h > o.y);
+}
+function comprobarHabitacionDentroDePiso(hab) {
+    return { dentro: objetosPlano.some(p => p.tipo === 'piso' && hab.x >= p.x && (hab.x + hab.w) <= (p.x + p.w) && hab.y >= p.y && (hab.y + hab.h) <= (p.y + p.h)) };
+}
+
+function renderizarPlano() {
+    const ayuda = document.getElementById('ayuda-plano');
+    if (ayuda) ayuda.style.display = objetosPlano.length === 0 ? 'block' : 'none';
+    document.querySelectorAll('.objeto-plano').forEach(el => el.remove());
+    if (!moduloEscalablePlano) return;
+    objetosPlano.forEach(o => {
+        const el = document.createElement('div');
+        el.className = `objeto-plano tipo-${o.tipo}`; el.id = o.id;
+        el.style.cssText = `left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;`;
+        el.innerHTML = `
+            <div class="header-objeto">
+                <input type="text" value="${o.nombre}" onchange="objetosPlano.find(x=>x.id==='${o.id}').nombre=this.value; marcarCambio();">
+                <button onclick="event.stopPropagation();eliminarObjetoPlano('${o.id}')" style="background:none;border:none;color:var(--red);font-weight:bold;cursor:pointer;">×</button>
+            </div>
+            <div class="lista-nombres-en-plano" id="dinamico-nombres-${o.id}"></div>
+            <div class="nodo-resize nodo-n"  onmousedown="iniciarResizePlano(event,'${o.id}','n')"  ontouchstart="iniciarResizePlano(event,'${o.id}','n')"></div>
+            <div class="nodo-resize nodo-s"  onmousedown="iniciarResizePlano(event,'${o.id}','s')"  ontouchstart="iniciarResizePlano(event,'${o.id}','s')"></div>
+            <div class="nodo-resize nodo-e"  onmousedown="iniciarResizePlano(event,'${o.id}','e')"  ontouchstart="iniciarResizePlano(event,'${o.id}','e')"></div>
+            <div class="nodo-resize nodo-w"  onmousedown="iniciarResizePlano(event,'${o.id}','w')"  ontouchstart="iniciarResizePlano(event,'${o.id}','w')"></div>
+            <div class="nodo-resize nodo-nw" onmousedown="iniciarResizePlano(event,'${o.id}','nw')" ontouchstart="iniciarResizePlano(event,'${o.id}','nw')"></div>
+            <div class="nodo-resize nodo-ne" onmousedown="iniciarResizePlano(event,'${o.id}','ne')" ontouchstart="iniciarResizePlano(event,'${o.id}','ne')"></div>
+            <div class="nodo-resize nodo-sw" onmousedown="iniciarResizePlano(event,'${o.id}','sw')" ontouchstart="iniciarResizePlano(event,'${o.id}','sw')"></div>
+            <div class="nodo-resize nodo-se" onmousedown="iniciarResizePlano(event,'${o.id}','se')" ontouchstart="iniciarResizePlano(event,'${o.id}','se')"></div>`;
+        moduloEscalablePlano.appendChild(el);
+    });
+    recalcularDiaPorPosicion();
+}
+
+function eliminarObjetoPlano(id) {
+    objetosPlano = objetosPlano.filter(x => x.id !== id);
+    for (let rId in baseDatosRangos) {
+        const r = baseDatosRangos[rId];
+        r.destinosPlano = r.destinosPlano.filter(x => x !== id);
+        if (r.asignaciones) { for (let n in r.asignaciones) { if (r.asignaciones[n] === id) r.asignaciones[n] = null; } }
+    }
+    renderizarPlano(); marcarCambio();
+}
+
+function iniciarResizePlano(e, id, dir) {
+    e.stopPropagation(); e.preventDefault();
+    resizePlanoObj = true; planoTargetId = id; nodoDireccion = dir;
+    startX = e.touches ? e.touches[0].clientX : e.clientX;
+    startY = e.touches ? e.touches[0].clientY : e.clientY;
+    const obj = objetosPlano.find(o => o.id === id); objOriginalState = { x: obj.x, y: obj.y, w: obj.w, h: obj.h };
+    window.addEventListener('mousemove', moverResizePlano); window.addEventListener('mouseup', detenerResizePlano);
+    window.addEventListener('touchmove', moverResizePlano, { passive: false }); window.addEventListener('touchend', detenerResizePlano);
+}
+function moverResizePlano(e) {
+    if (!resizePlanoObj) return;
+    const cx = e.touches ? e.touches[0].clientX : e.clientX, cy = e.touches ? e.touches[0].clientY : e.clientY;
+    const dx = (cx - startX) / escalaPlano, dy = (cy - startY) / escalaPlano;
+    const obj = objetosPlano.find(o => o.id === planoTargetId); if (!obj) return;
+    let nx = objOriginalState.x, ny = objOriginalState.y, nw = objOriginalState.w, nh = objOriginalState.h;
+    if (nodoDireccion.includes('e')) nw += dx; if (nodoDireccion.includes('w')) { nx += dx; nw -= dx; }
+    if (nodoDireccion.includes('s')) nh += dy; if (nodoDireccion.includes('n')) { ny += dy; nh -= dy; }
+    if (nw > 40 && nh > 30 && nx >= 0 && ny >= 0) {
+        if (obj.tipo === 'piso' && detectarColisionPisos({ x: nx, y: ny, w: nw, h: nh }, obj.id)) return;
+        obj.x = nx; obj.y = ny; obj.w = nw; obj.h = nh;
+        const dom = document.getElementById(obj.id);
+        if (dom) { dom.style.left = `${nx}px`; dom.style.top = `${ny}px`; dom.style.width = `${nw}px`; dom.style.height = `${nh}px`; }
+    }
+}
+function detenerResizePlano() {
+    if (resizePlanoObj && planoTargetId) {
+        const obj = objetosPlano.find(o => o.id === planoTargetId);
+        if (obj && obj.tipo === 'habitacion' && !comprobarHabitacionDentroDePiso(obj).dentro) {
+            alert("La habitación debe quedar dentro de un piso.");
+            obj.x = objOriginalState.x; obj.y = objOriginalState.y; obj.w = objOriginalState.w; obj.h = objOriginalState.h;
+            renderizarPlano();
+        } else { marcarCambio(); }
+    }
+    resizePlanoObj = false; window.removeEventListener('mousemove', moverResizePlano); window.removeEventListener('touchmove', moverResizePlano);
+}
+
+// ── PLANO DINÁMICO ──
+function actualizarPlanoDinamico(diaIdx) {
+    objetosPlano.forEach(o => { const b = document.getElementById(`dinamico-nombres-${o.id}`); if (b) b.innerHTML = ''; });
+    for (let rId in baseDatosRangos) {
+        let r = baseDatosRangos[rId];
+        if (diaIdx >= r.diaInicio && diaIdx < r.diaFin && r.destinosPlano && r.destinosPlano.length > 0) {
+            if (r.asignaciones && Object.keys(r.asignaciones).length > 0) {
+                for (let nombre in r.asignaciones) {
+                    const objId = r.asignaciones[nombre]; if (!objId) continue;
+                    const b = document.getElementById(`dinamico-nombres-${objId}`);
+                    if (b) { const s = document.createElement('span'); s.className = 'tag-plano-dinamico'; s.innerText = nombre; b.appendChild(s); }
                 }
+            } else {
+                r.destinosPlano.forEach(destId => {
+                    const b = document.getElementById(`dinamico-nombres-${destId}`);
+                    if (b) r.nombres.forEach(n => { const s = document.createElement('span'); s.className = 'tag-plano-dinamico'; s.innerText = n; b.appendChild(s); });
+                });
             }
         }
     }
+}
 
-    window.addEventListener('resize', () => actualizarGraficaLineaAzul());
-    setTimeout(() => { cambiarZoom(0); xInternaPíxelesAzul = 0; actualizarGraficaLineaAzul(); }, 300);
+// ── ARRANQUE ──
+window.addEventListener('resize', () => actualizarGraficaLineaAzul());
+
+(async () => {
+    // Init visual básico
+    cambiarZoom(0);
+    xInternaPíxelesAzul = 0;
+    actualizarGraficaLineaAzul();
+
+    // Cargar desde Supabase
+    await cargarEstado();
+
+    // Ocultar pantalla de carga
+    const pc = document.getElementById('pantalla-carga');
+    if (pc) pc.style.display = 'none';
+})();
 </script>
 </body>
 </html>
