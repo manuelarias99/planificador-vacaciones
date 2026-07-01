@@ -330,13 +330,16 @@
 
     <!-- ÁREA PRINCIPAL -->
     <div class="area-principal">
+      
         <div class="barra-herramientas-superior">
             <button class="btn-top ghost" id="btn-toggle-nombres" onclick="togglePanel('nombres')">Nombres</button>
             <button class="btn-top ghost" id="btn-toggle-mandos"  onclick="toggleMandosLineas()">Mandos</button>
             <button class="btn-top red activo" id="btn-toggle-plano" onclick="togglePanel('plano')">Plano ▼</button>
             <div class="sep"></div>
+            <button class="btn-top ghost" onclick="cambiarZoom(4)" title="Acercar Calendario">📅 ＋</button>
+            <button class="btn-top ghost" onclick="cambiarZoom(-4)" title="Alejar Calendario">📅 －</button>
+            <div class="sep"></div>
             <button class="btn-top blue" onclick="agregarLinea()">+ Línea</button>
-            <!-- Botón guardar manual -->
             <button class="btn-top save" onclick="guardarEstado(true)">💾 Guardar</button>
         </div>
 
@@ -363,9 +366,13 @@
         <!-- PLANO -->
         <div class="seccion-plano" id="panel-plano">
             <div class="resizer-vertical" id="resizer-plano"></div>
+          
             <div class="cabecera-plano">
-                <strong id="titulo-plano">Plano — pellizca para zoom</strong>
-                <div style="display:flex;gap:5px;">
+                <strong id="titulo-plano">Plano — pellizca o usa botones para zoom</strong>
+                <div style="display:flex;gap:5px;align-items:center;">
+                    <button class="btn-herramienta" onclick="zoomPlanoBoton(0.15)" title="Acercar Plano">🔍 ＋</button>
+                    <button class="btn-herramienta" onclick="zoomPlanoBoton(-0.15)" title="Alejar Plano">🔍 －</button>
+                    <div class="sep" style="height:14px;margin:0 2px;"></div>
                     <button id="btn-herramienta-piso" class="btn-herramienta" onclick="setHerramienta('piso')">＋ Piso</button>
                     <button id="btn-herramienta-hab"  class="btn-herramienta" onclick="setHerramienta('habitacion')">＋ Habitación</button>
                 </div>
@@ -889,6 +896,13 @@ if (panelPlano && moduloEscalablePlano) {
             moduloEscalablePlano.style.transform = `scale(${escalaPlano})`; distInicialPlano = dist;
         }
     }, { passive: false });
+
+// Función para hacer zoom en el plano mediante botones (PC)
+function zoomPlanoBoton(delta) {
+    if (!moduloEscalablePlano) return;
+    escalaPlano = Math.max(0.5, Math.min(2.5, escalaPlano + delta));
+    moduloEscalablePlano.style.transform = `scale(${escalaPlano})`;
+}
 }
 
 // ── PLANO ──
